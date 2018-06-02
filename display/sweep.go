@@ -60,41 +60,29 @@ func initialize() i2c.Connection {
     return con
 }
 
+// A very simple test for the Adafruit 0.8" 8x16 LED Matrix
+// FeatherWing Display.
+// Rolls a single bit from top to bottom, left to right, leaving
+// a single line of lit bits across the bottom of the display.
+//
 func lightAll() {
-    // First four digits for Alphanumeric and 8x16 Matrix
-    // FeatherWing Displays.
-    //
-    // The 'digit' address is the address/offset into the
-    // HT16K33's internal eight byte array. Each bit
-    // represents a segment or LED, each address a section
-    // within an entire device
-    //
-    // Digit 0
-    //
-    con.WriteWordData(0, 0xFFFF)
-
-    // Digit 1
-    //
-    con.WriteWordData(2, 0xFFFF)
-
-    // Digit 2
-    //
-    con.WriteWordData(4, 0xFFFF)
-
-    // Digit 3
-    //
-    con.WriteWordData(6, 0xFFFF)
-
-    // Rest of the bytes for the
-    // Adafruit 0.8" 8x16 LED Matrix FeatherWing Display
-    con.WriteWordData(8, 0xFFFF)
-    con.WriteWordData(10, 0xFFFF)
-    con.WriteWordData(12, 0xFFFF)
-    con.WriteWordData(14, 0xFFFF)
+    var bit uint8
+    for k := 0 ; k < 2 ; k++ {
+        for i := 0 ; i < 8 ; i++ {
+            bit = 0x80
+            for j := k * 8 ; j < (8 + k*8) ; j++ {
+                con.WriteByteData(uint8((i * 2) + k), bit)
+                bit >>= 1
+                time.Sleep(40 * time.Millisecond)
+            }
+        }
+    }
 }
 
+// Just turns every lit LED off.
+//
 func darkenAll() {
-    // Turn off every segment on every digit.
+    // Turn off every bit on the displays.
     //
     con.WriteWordData(0, 0)
     con.WriteWordData(2, 0)
@@ -139,7 +127,7 @@ func main() {
 
     darkenAll()
     lightAll()
-    time.Sleep(5 * time.Second)
+    time.Sleep(1 * time.Second)
     darkenAll()
     con.Close()
 }
