@@ -62,18 +62,30 @@ func initialize() i2c.Connection {
 
 // A very simple test for the Adafruit 0.8" 8x16 LED Matrix
 // FeatherWing Display.
-// Rolls a single bit from top to bottom, left to right, leaving
-// a single line of lit bits across the bottom of the display.
+// "Bounces" a row of lit LEDs from top to bottom and back to the top, left to right,
+// leaving a single straight line of lit LEDs across the top of the display.
 //
 func lightAll() {
-    var bit uint8
-    for k := 0 ; k < 2 ; k++ {
-        for i := 0 ; i < 8 ; i++ {
-            bit = 0x80
-            for j := k * 8 ; j < (8 + k*8) ; j++ {
-                con.WriteByteData(uint8((i * 2) + k), bit)
-                bit >>= 1
-                time.Sleep(40 * time.Millisecond)
+    block := make([]byte, 16)
+    upDirection := make([]bool, 16)
+    altIndex := []int{0,2,4,6,8,10,12,14,1,3,5,7,9,11,13,15}
+    for i := range block {
+        block[i] = 0x80
+    }
+
+    for i := 0 ; i < 2 * len(block) ; i++ {
+        con.WriteBlockData(0, block)
+        if i > 0 {
+            time.Sleep(25 * time.Millisecond)
+        }
+        for j := i ; j >= 0 ; j-- {
+            if j < len(block) && block[altIndex[j]] > 1 && ! upDirection[altIndex[j]] {
+                block[altIndex[j]] >>= 1
+            } else if j < len(block) && block[altIndex[j]] == 1 {
+                upDirection[altIndex[j]] = true
+            }
+            if j < len(block) && block[altIndex[j]] < 0x80 && upDirection[altIndex[j]] {
+                block[altIndex[j]] <<= 1
             }
         }
     }
@@ -84,14 +96,8 @@ func lightAll() {
 func darkenAll() {
     // Turn off every bit on the displays.
     //
-    con.WriteWordData(0, 0)
-    con.WriteWordData(2, 0)
-    con.WriteWordData(4, 0)
-    con.WriteWordData(6, 0)
-    con.WriteWordData(8, 0)
-    con.WriteWordData(10, 0)
-    con.WriteWordData(12, 0)
-    con.WriteWordData(14, 0)
+    block := make([]byte, 16)
+    con.WriteBlockData(0, block)
 }
 
 func main() {
@@ -126,8 +132,10 @@ func main() {
     }()
 
     darkenAll()
-    lightAll()
-    time.Sleep(1 * time.Second)
+    for i := 0 ; i < 6 ; i++ {
+        lightAll()
+    }
+    time.Sleep(30 * time.Millisecond)
     darkenAll()
     con.Close()
 }
