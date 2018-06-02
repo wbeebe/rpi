@@ -36,33 +36,33 @@ find them useful in your own work.
 
 The folder contains the following data sheets in PDF format:
 
-BCM2837-ARM-Peripherals-Stanford-EDU-Corrections.pdf
-The BCM2835 datasheet with corrections for the BCM2837 applied by
++ BCM2837-ARM-Peripherals-Stanford-EDU-Corrections.pdf
++ The BCM2835 datasheet with corrections for the BCM2837 applied by
 Stanford University's Computer Science division for classroom work.
 
-BST_BNO055_DS000_14.pdf
-The Bosch BNO055 Sensortec 9-axis motion sensor. This part is used
++ BST_BNO055_DS000_14.pdf
++ The Bosch BNO055 Sensortec 9-axis motion sensor. This part is used
 in the Adafruit Absolute Orientation IMU Fusion Breakout
 
-DL2416.pdf
-The DL2416 is a small four digit alphanumeric display. This was
++ DL2416.pdf
++ The DL2416 is a small four digit alphanumeric display. This was
 a big seller in the 1980s.
 
-HP_5082-7340.pdf
-A single digit alphanumeric display. HP back in the 1980s had
++ HP_5082-7340.pdf
++ A single digit alphanumeric display. HP back in the 1980s had
 a semiconductor and test instrument division. These displays were
 made by them. They were both used internally in their test equipment
 as well as sold to other customers.
 
-HT16K33V110.pdf
-The HT16K33 is the I2C peripheral chip behind many of Adafruit's
++ HT16K33V110.pdf
++ The HT16K33 is the I2C peripheral chip behind many of Adafruit's
 FeatherWing displays.
 
-MCP23017.pdf
-An 8-bit dual port I2C port expander. Complete pinouts and
++ MCP23017.pdf
++ An 8-bit dual port I2C port expander. Complete pinouts and
 I2C command and control register layout.
 
-UM10204_I2C_BUS_SPEC_AND_USER_MANUAL.pdf
-The I2C Bus Specification and User Manual. Use this to better
++ UM10204_I2C_BUS_SPEC_AND_USER_MANUAL.pdf
++ The I2C Bus Specification and User Manual. Use this to better
 understand what the hardware and drivers are (attempting to) doing
 on the Raspberry Pi.
