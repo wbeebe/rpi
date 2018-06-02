@@ -36,6 +36,13 @@ find them useful in your own work.
 
 The folder contains the following data sheets in PDF format:
 
++ AV02-0629EN-DS-HDSP-210x-02Dec20100.pdf - 
+ A current datasheet for the HP HDSP-2111 and HDSP-2113 which I still
+have a number of. Acquired back in the early 1980s, these are eight
+character alphanumeric displays. They are driven through MCP23017s
+in one of my current designs. Look in the I2Cpp folder for the
+software.
+
 + BCM2837-ARM-Peripherals-Stanford-EDU-Corrections.pdf - 
  The BCM2835 datasheet with corrections for the BCM2837 applied by
 Stanford University's Computer Science division for classroom work.

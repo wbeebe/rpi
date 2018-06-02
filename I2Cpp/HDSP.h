@@ -1,9 +1,22 @@
 /*
+ * Copyright (c) 2018 William H. Beebe, Jr.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  * HDSP2111.h:
  * HDSP 211x defines.
- *
- * Copyright (c) 2017 William H. Beebe, Jr.
  */
+
 #ifndef HDSP_H
 #define HDSP_H
 #include <cstring>
@@ -34,7 +47,7 @@
 //
 #define HDSP_WR1    HDSP_BASE+12    // Write to Display 1
 
-#define HDSP_CE2    HDSP_BASE+13    // Emable Display 2
+#define HDSP_CE2    HDSP_BASE+13    // Enable Display 2
 #define HDSP_WR2    HDSP_BASE+14    // Write to Display 2
 #define HDSP_RST    HDSP_BASE+15    // Reset line to Displays
 
