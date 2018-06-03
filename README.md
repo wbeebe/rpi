@@ -12,8 +12,10 @@ version on the website.
 
 ## C++ Tools
 
-The C++ tools are built with GCC 6.3 and use the wiringPi framework.
-C++ is provided in the Linux repo and is sufficiently advanced.
+The C++ tools are built with GCC 6.3 and use Gordon Henderson's excellent
+wiringPi framework (http://wiringpi.com/). The latest Raspbian repo has
+the latest wiringPi release, 2.46. GCC 6.3 is provided in the latest Raspbian
+repo as well.
 
 ## Hardware
 
