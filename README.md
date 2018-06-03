@@ -5,7 +5,7 @@ Some tools are written in Go, and some in C++
 
 ## Go Tools
 
-The Go tools are built with Go 1.10.2 and use the Gobot framework.
+The Go tools are built with Go 1.10.2 and use the Gobot framework (https://gobot.io).
 The Go tools were downloaded and installed from https://golang.org/
 Do not install Go from any Linux repo unless it matches the release
 version on the website.
