@@ -43,21 +43,22 @@ const (
     HT16K33_CMD_BRIGHTNESS byte = 0xE0
 )
 
-var con i2c.Connection
+var address = DEFAULT_ADDRESS
+var device i2c.Connection
 
 func initialize() i2c.Connection {
     adapter := raspi.NewAdaptor()
     adapter.Connect()
     bus := adapter.GetDefaultBus()
     fmt.Printf("bus %d\n", bus)
-    con, _ = adapter.GetConnection(DEFAULT_ADDRESS, bus)
+    device, _ = adapter.GetConnection(address, bus)
     // Turn on chip's internal oscillator.
-    con.WriteByte(HT16K33_SYSTEM_SETUP | HT16K33_OSCILLATOR_ON)
+    device.WriteByte(HT16K33_SYSTEM_SETUP | HT16K33_OSCILLATOR_ON)
     // Turn on the display. YOU HAVE TO SEND THIS.
-    con.WriteByte(HT16K33_DISPLAY_SETUP | HT16K33_DISPLAY_ON)
+    device.WriteByte(HT16K33_DISPLAY_SETUP | HT16K33_DISPLAY_ON)
     // Set for maximum LED brightness.
-    con.WriteByte(HT16K33_CMD_BRIGHTNESS | 0x0f)
-    return con
+    device.WriteByte(HT16K33_CMD_BRIGHTNESS | 0x0f)
+    return device
 }
 
 func lightAll() {
@@ -71,39 +72,33 @@ func lightAll() {
     //
     // Digit 0
     //
-    con.WriteWordData(0, 0xFFFF)
+    device.WriteWordData(0, 0xFFFF)
 
     // Digit 1
     //
-    con.WriteWordData(2, 0xFFFF)
+    device.WriteWordData(2, 0xFFFF)
 
     // Digit 2
     //
-    con.WriteWordData(4, 0xFFFF)
+    device.WriteWordData(4, 0xFFFF)
 
     // Digit 3
     //
-    con.WriteWordData(6, 0xFFFF)
+    device.WriteWordData(6, 0xFFFF)
 
     // Rest of the bytes for the
     // Adafruit 0.8" 8x16 LED Matrix FeatherWing Display
-    con.WriteWordData(8, 0xFFFF)
-    con.WriteWordData(10, 0xFFFF)
-    con.WriteWordData(12, 0xFFFF)
-    con.WriteWordData(14, 0xFFFF)
+    device.WriteWordData(8, 0xFFFF)
+    device.WriteWordData(10, 0xFFFF)
+    device.WriteWordData(12, 0xFFFF)
+    device.WriteWordData(14, 0xFFFF)
 }
 
 func darkenAll() {
     // Turn off every segment on every digit.
     //
-    con.WriteWordData(0, 0)
-    con.WriteWordData(2, 0)
-    con.WriteWordData(4, 0)
-    con.WriteWordData(6, 0)
-    con.WriteWordData(8, 0)
-    con.WriteWordData(10, 0)
-    con.WriteWordData(12, 0)
-    con.WriteWordData(14, 0)
+    var data []byte = make([]byte, 16)
+    device.WriteBlockData(0, data)
 }
 
 func main() {
@@ -117,7 +112,7 @@ func main() {
         syscall.SIGTERM,
         syscall.SIGQUIT)
 
-    con := initialize()
+    device := initialize()
 
     // We want to capture CTRL+C to first clear the display and then exit.
     // We don't want to leave the display lit on an abort.
@@ -130,7 +125,7 @@ func main() {
                 // CTRL+C
                 fmt.Println()
                 darkenAll()
-                con.Close()
+                device.Close()
                 os.Exit(0)
             default:
             }
@@ -141,6 +136,6 @@ func main() {
     lightAll()
     time.Sleep(5 * time.Second)
     darkenAll()
-    con.Close()
+    device.Close()
 }
 

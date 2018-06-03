@@ -66,9 +66,9 @@ func main() {
     // hex address of that device.
     //
     for i := 0 ; i < 128 ; i++ {
-        con, err := adapter.GetConnection(i, bus)
+        device, err := adapter.GetConnection(i, bus)
         if err == nil {
-            _, err := con.ReadByte()
+            _, err := device.ReadByte()
             if err == nil {
                 fmt.Printf( "Found device at 0x%x on I2C bus %d\n", i, bus)
             }
