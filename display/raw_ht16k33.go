@@ -58,7 +58,7 @@ func initialize() (device i2c.Connection, err error) {
     //
     if device, err := adapter.GetConnection(address, bus) ; err == nil {
         if _, err := device.ReadByte() ; err == nil {
-            fmt.Printf(" Using device 0x%x/%d on bus %d\n", address, address, bus)
+            fmt.Printf(" Using device 0x%x / %d on bus %d\n", address, address, bus)
         } else {
             return device, fmt.Errorf(" Could not find device 0x%x / %d", address, address)
         }
@@ -125,19 +125,28 @@ func main() {
         syscall.SIGTERM,
         syscall.SIGQUIT)
 
+    // We can pass zero to many addresses on the command line.
+    // For example, 'raw_ht16k33 0x70 0x71' will turn on both
+    // displays, one after the other, if they are both attached.
+    // If either one is not there or unreachable, the application
+    // will abort.
+    //
+    var addresses []int
+
     for _, arg := range os.Args[1:] {
         if newAddress, err := strconv.ParseInt(arg, 0, 32); err == nil {
-            address = int(newAddress)
+            addresses = append(addresses, int(newAddress))
         } else {
-            fmt.Println(err)
+            log.Fatal(err)
         }
     }
 
-    dev, err := initialize()
-    if err != nil {
-        log.Fatal(err)
+    // If nothing passed on the command line then use the default
+    // address/
+    //
+    if len(addresses) == 0 {
+        addresses = append(addresses, DEFAULT_ADDRESS)
     }
-    device = dev
 
     // We want to capture CTRL+C to first clear the display and then exit.
     // We don't want to leave the display lit on an abort.
@@ -157,10 +166,24 @@ func main() {
         }
     }()
 
-    darkenAll()
-    lightAll()
-    time.Sleep(5 * time.Second)
-    darkenAll()
-    device.Close()
+    // Iterate over all the addresses passed on the command line (or not),
+    // aborting if any of the devices are unreachable.
+    //
+    for _, addr := range addresses {
+        address = int(addr)
+
+        dev, err := initialize()
+        if err != nil {
+            log.Fatal(err)
+        }
+
+        device = dev
+        darkenAll()
+        lightAll()
+        time.Sleep(2 * time.Second)
+        darkenAll()
+        device.Close()
+    }
+
 }
 
