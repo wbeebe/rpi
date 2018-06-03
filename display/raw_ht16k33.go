@@ -18,9 +18,11 @@ package main
 
 import (
     "fmt"
+    "log"
     "time"
     "os"
     "os/signal"
+    "strconv"
     "syscall"
 
     "gobot.io/x/gobot/drivers/i2c"
@@ -46,11 +48,22 @@ const (
 var address = DEFAULT_ADDRESS
 var device i2c.Connection
 
-func initialize() i2c.Connection {
+func initialize() (device i2c.Connection, err error) {
     adapter := raspi.NewAdaptor()
     adapter.Connect()
     bus := adapter.GetDefaultBus()
-    fmt.Printf("bus %d\n", bus)
+
+    // Check to see if the device actually is on the I2C buss.
+    // If it is then use it, else return an error.
+    //
+    if device, err := adapter.GetConnection(address, bus) ; err == nil {
+        if _, err := device.ReadByte() ; err == nil {
+            fmt.Printf(" Using device 0x%x/%d on bus %d\n", address, address, bus)
+        } else {
+            return device, fmt.Errorf(" Could not find device 0x%x / %d", address, address)
+        }
+    }
+
     device, _ = adapter.GetConnection(address, bus)
     // Turn on chip's internal oscillator.
     device.WriteByte(HT16K33_SYSTEM_SETUP | HT16K33_OSCILLATOR_ON)
@@ -58,7 +71,7 @@ func initialize() i2c.Connection {
     device.WriteByte(HT16K33_DISPLAY_SETUP | HT16K33_DISPLAY_ON)
     // Set for maximum LED brightness.
     device.WriteByte(HT16K33_CMD_BRIGHTNESS | 0x0f)
-    return device
+    return device, nil
 }
 
 func lightAll() {
@@ -112,7 +125,19 @@ func main() {
         syscall.SIGTERM,
         syscall.SIGQUIT)
 
-    device := initialize()
+    for _, arg := range os.Args[1:] {
+        if newAddress, err := strconv.ParseInt(arg, 0, 32); err == nil {
+            address = int(newAddress)
+        } else {
+            fmt.Println(err)
+        }
+    }
+
+    dev, err := initialize()
+    if err != nil {
+        log.Fatal(err)
+    }
+    device = dev
 
     // We want to capture CTRL+C to first clear the display and then exit.
     // We don't want to leave the display lit on an abort.
