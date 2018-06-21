@@ -22,7 +22,6 @@ import (
     "os/signal"
     "syscall"
 
-    // "gobot.io/x/gobot/drivers/i2c"
     "gobot.io/x/gobot/platforms/raspi"
 )
 
