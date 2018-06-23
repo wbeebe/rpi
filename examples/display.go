@@ -22,7 +22,7 @@ import (
     "os/signal"
     "syscall"
 
-    "github.com/wbeebe/rpi/ht16k33"
+    "github.com/wbeebe/rpi/devices"
 )
 
 func help() {
@@ -78,7 +78,7 @@ func main() {
             case syscall.SIGINT:
                 // CTRL+C
                 fmt.Println()
-                ht16k33.Close()
+                devices.Close()
                 os.Exit(0)
             default:
             }
@@ -101,24 +101,24 @@ func main() {
         if len(argument) == 0 {
             fmt.Printf(" bit command needs a binary argument.\n")
         } else {
-            ht16k33.DisplayBinary(argument)
+            devices.DisplayBinary(argument)
         }
     case "clear":
-        ht16k33.Clear()
+        devices.Clear()
     case "numbers":
-        ht16k33.NumbersTest()
+        devices.NumbersTest()
     case "segments":
-        ht16k33.CycleSegments()
+        devices.CycleSegments()
     case "scroll":
         if len(argument) == 0 {
             fmt.Printf(" scroll command needs a message to display.\n")
         } else {
-            ht16k33.ScrollString(argument)
+            devices.ScrollString(argument)
         }
     case "table":
-        ht16k33.ScrollAlphaTable()
+        devices.ScrollAlphaTable()
     case "test":
-        ht16k33.AllDigitSegmentTest()
+        devices.AllDigitSegmentTest()
     default:
         help()
     }

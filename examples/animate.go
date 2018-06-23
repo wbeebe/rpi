@@ -19,6 +19,7 @@ package main
 import (
     "fmt"
     "log"
+    "sort"
     "time"
     "os"
     "os/signal"
@@ -26,6 +27,8 @@ import (
 
     "gobot.io/x/gobot/drivers/i2c"
     "gobot.io/x/gobot/platforms/raspi"
+
+    "github.com/wbeebe/rpi/devices"
 )
 
 const DEFAULT_ADDRESS int = 0x70
@@ -70,7 +73,7 @@ func initialize(address int) (device i2c.Connection, err error) {
     return device, nil
 }
 
-// A application for the Adafruit 0.8" 8x16 LED Matrix FeatherWing Display.
+// An application for the Adafruit 0.8" 8x16 LED Matrix FeatherWing Display.
 //
 
 var buffer []byte = make([]byte, 16)
@@ -121,39 +124,67 @@ func darkenAll(device i2c.Connection) {
 var blockCircle []byte  = []byte {0x3c, 0x42, 0x81, 0x81, 0x81, 0x81, 0x42, 0x3c}
 var blockSquare []byte  = []byte {0xFF, 0xFF, 0xC3, 0xC3, 0xC3, 0xC3, 0xFF, 0xFF}
 var blockDiamond []byte = []byte {0x18, 0x3C, 0x7E, 0xFF, 0xFF, 0x7E, 0x3C, 0x18}
+var blockCheck []byte   = []byte {0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55}
 var blockX []byte       = []byte {0x81, 0x42, 0x24, 0x18, 0x18, 0x24, 0x42, 0x81}
 var blockFace []byte    = []byte {0x3C, 0x42, 0xA9, 0x89, 0x89, 0xA9, 0x42, 0x3C}
 var blockFrown []byte   = []byte {0x3C, 0x42, 0xA5, 0x89, 0x89, 0xA5, 0x42, 0x3C}
 var blockSmile []byte   = []byte {0x3C, 0x42, 0xA9, 0x85, 0x85, 0xA9, 0x42, 0x3C}
 
-var shapeTable []*[]byte =
-    []*[]byte {&blockCircle, &blockSquare, &blockDiamond, &blockX, &blockFace, &blockFrown, &blockSmile}
+// So why define this twice? Because I needed a set to display in insertion order,
+// and a map to individually address each glyph by string name.
+//
+var shapeSet []*[]byte =
+   []*[]byte {&blockCircle, &blockSquare, &blockDiamond, &blockCheck, &blockX, &blockFace, &blockFrown, &blockSmile}
+
+var shapeTable= map[string]*[]byte{
+    "circle": &blockCircle,
+    "square": &blockSquare,
+    "diamond": &blockDiamond,
+    "check": &blockCheck,
+    "x": &blockX,
+    "face": &blockFace,
+    "frown": &blockFrown,
+    "smile": &blockSmile,
+}
+
+func listGlyphNames() {
+    var names = make([]string, len(shapeTable))
+    index := 0
+    for key, _ := range shapeTable {
+        names[index] = key
+        index++
+    }
+    sort.Strings(names)
+    for _, name := range names {
+        fmt.Printf(" %s\n", name)
+    }
+}
 
 // Simple animation with smiley faces. Similar to what Adafruit shows on their site
 // with these 8x16 displays.
 //
 func simpleAnimation(device i2c.Connection) {
     for {
-        loadBuffer(blockFace, 0)
-        loadBuffer(blockFrown, 1)
+        loadBuffer(*shapeTable["face"], 0)
+        loadBuffer(*shapeTable["frown"], 1)
         drawBuffer(device)
         time.Sleep( 500 * time.Millisecond )
-        loadBuffer(blockFrown, 0)
-        loadBuffer(blockSmile, 1)
+        loadBuffer(*shapeTable["frown"], 0)
+        loadBuffer(*shapeTable["smile"], 1)
         drawBuffer(device)
         time.Sleep( 500 * time.Millisecond )
-        loadBuffer(blockSmile, 0)
-        loadBuffer(blockFace, 1)
+        loadBuffer(*shapeTable["smile"], 0)
+        loadBuffer(*shapeTable["face"], 1)
         drawBuffer(device)
         time.Sleep( time.Second )
     }
 }
 
-// Scroll's two smiley face glyphs across the display.
+// Scroll's two glyphs across the display.
 //
-func simpleScroll(device i2c.Connection) {
-    loadBuffer(blockSmile, 0)
-    loadBuffer(blockFrown, 1)
+func simpleScroll(device i2c.Connection, glyphName string) {
+    loadBuffer(*shapeTable[glyphName], 0)
+    loadBuffer(*shapeTable[glyphName], 1)
 
     for {
         drawBuffer(device)
@@ -182,11 +213,20 @@ func wave(device i2c.Connection) {
 }
 
 func shapes(device i2c.Connection) {
-    for _, glyph := range shapeTable {
+    for _, glyph := range shapeSet {
         loadBuffer(*glyph, 0)
         loadBuffer(*glyph, 1)
-        device.WriteBlockData(0, buffer)
+        drawBuffer(device)
         time.Sleep( 500 * time.Millisecond)
+    }
+}
+
+func vt52(device i2c.Connection) {
+    for _, char := range devices.VT52rom {
+        loadBuffer(char, 0)
+        loadBuffer(char, 1)
+        drawBuffer(device)
+        time.Sleep( 350 * time.Millisecond)
     }
 }
 
@@ -196,7 +236,11 @@ func help() {
         " Command line actions:\n",
         " faces  - Displays a series of three smiley faces.",
         " shapes - Displays a series of simple glyphs.",
-        " scroll - Scrolls smiley faces from left to right.",
+        " scroll - Scrolls a selected glyph from left to right.",
+        "        - scroll by itself scrolls a smiley face.",
+        "        - 'animate scroll list' lists all glyphs.",
+        " vt52   - Displays all the old VT-52 ROM characters",
+        "        - translated to work with the Adafruit display.",
         " wave   - Displays a scrolling triangle wave.\n",
         " No command - this help\n",
     }
@@ -242,21 +286,42 @@ func main() {
         }
     }()
 
-    var action string
+    var action, argument string
 
     if len(os.Args) > 1 {
         action = os.Args[1]
+    }
+    if len(os.Args) > 2 {
+        argument = os.Args[2]
     }
 
     switch action {
     case "faces":
         simpleAnimation(device)
     case "scroll":
-        simpleScroll(device)
+        if len(argument) == 0 {
+            argument = "smile"
+        } else {
+            if argument == "list" {
+                fmt.Printf("\n Scrollable glyphs are named:\n\n")
+                listGlyphNames()
+                break
+            }
+            if _, exist := shapeTable[argument]; ! exist {
+                fmt.Printf("\n Glyph %s does not exist.\n", argument)
+                fmt.Printf(" Please use one of:\n\n")
+                listGlyphNames()
+                break
+            }
+        }
+
+        simpleScroll(device, argument)
     case "wave":
         wave(device)
     case "shapes":
         shapes(device)
+    case "vt52":
+        vt52(device)
     default:
         help()
     }
