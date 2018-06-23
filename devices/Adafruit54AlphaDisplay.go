@@ -24,34 +24,11 @@ import (
     "unicode"
 
     "gobot.io/x/gobot/drivers/i2c"
-    "gobot.io/x/gobot/platforms/raspi"
 )
 
 // Constants
 //
-// The default address is for the
-// Adafruit 0.54" Alphanumeric FeatherWing Display
-// https://www.adafruit.com/product/3130
-//
-// These constants are from Adafruit's GitHub
-// repository C++ files at
-// https://github.com/adafruit/Adafruit_LED_Backpack/
-//
-const DEFAULT_ADDRESS int = 0x70
-
-// Commands to send the HT16K33
-//
-const (
-    HT16K33_SYSTEM_SETUP byte = 0x20
-    HT16K33_OSCILLATOR_ON byte = 0x01
-    HT16K33_DISPLAY_SETUP byte = 0x80
-    HT16K33_DISPLAY_ON byte = 0x01
-    HT16K33_BLINK_OFF byte = 0x00
-    HT16K33_BLINK_2HZ byte = 0x02
-    HT16K33_BLINK_1HZ byte = 0x04
-    HT16K33_BLINK_HALFHZ byte = 0x06
-    HT16K33_CMD_BRIGHTNESS byte = 0xE0
-)
+const DEFAULT_54AD_ADDRESS int = 0x70
 
 // A map of ASCII characters in string format to bit maps to display
 // that character.
@@ -163,20 +140,8 @@ var con i2c.Connection
 var data []byte = make([]byte, 8)
 var digits []uint16 = make ([]uint16, 4)
 
-// Initializes and opens a connection to an HT16K33.
-// Returns the i2c.Connection
-//
-func init() {
-    adapter := raspi.NewAdaptor()
-    adapter.Connect()
-    bus := adapter.GetDefaultBus()
-    con, _ = adapter.GetConnection(DEFAULT_ADDRESS, bus)
-    // Turn on chip's internal oscillator.
-    con.WriteByte(HT16K33_SYSTEM_SETUP | HT16K33_OSCILLATOR_ON)
-    // Turn on the display. YOU HAVE TO SEND THIS.
-    con.WriteByte(HT16K33_DISPLAY_SETUP | HT16K33_DISPLAY_ON)
-    // Set for maximum LED brightness.
-    con.WriteByte(HT16K33_CMD_BRIGHTNESS | 0x0f)
+func SetConnection(connection i2c.Connection) {
+    con = connection
 }
 
 // Write a 16-bit value to one of the digits.

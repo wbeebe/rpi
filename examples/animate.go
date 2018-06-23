@@ -26,52 +26,11 @@ import (
     "syscall"
 
     "gobot.io/x/gobot/drivers/i2c"
-    "gobot.io/x/gobot/platforms/raspi"
 
     "github.com/wbeebe/rpi/devices"
 )
 
 const DEFAULT_ADDRESS int = 0x70
-
-// Commands to send the HT16K33
-//
-const (
-    HT16K33_SYSTEM_SETUP byte = 0x20
-    HT16K33_OSCILLATOR_ON byte = 0x01
-    HT16K33_DISPLAY_SETUP byte = 0x80
-    HT16K33_DISPLAY_ON byte = 0x01
-    HT16K33_BLINK_OFF byte = 0x00
-    HT16K33_BLINK_2HZ byte = 0x02
-    HT16K33_BLINK_1HZ byte = 0x04
-    HT16K33_BLINK_HALFHZ byte = 0x06
-    HT16K33_CMD_BRIGHTNESS byte = 0xE0
-)
-
-func initialize(address int) (device i2c.Connection, err error) {
-    adapter := raspi.NewAdaptor()
-    adapter.Connect()
-    bus := adapter.GetDefaultBus()
-
-    // Check to see if the device actually is on the I2C buss.
-    // If it is then use it, else return an error.
-    //
-    if device, err := adapter.GetConnection(address, bus) ; err == nil {
-        if _, err := device.ReadByte() ; err == nil {
-            fmt.Printf(" Using device 0x%x / %d on bus %d\n", address, address, bus)
-        } else {
-            return device, fmt.Errorf(" Could not find device 0x%x / %d", address, address)
-        }
-    }
-
-    device, _ = adapter.GetConnection(DEFAULT_ADDRESS, bus)
-    // Turn on chip's internal oscillator.
-    device.WriteByte(HT16K33_SYSTEM_SETUP | HT16K33_OSCILLATOR_ON)
-    // Turn on the display. YOU HAVE TO SEND THIS.
-    device.WriteByte(HT16K33_DISPLAY_SETUP | HT16K33_DISPLAY_ON)
-    // Set for maximum LED brightness.
-    device.WriteByte(HT16K33_CMD_BRIGHTNESS | 0x0f)
-    return device, nil
-}
 
 // An application for the Adafruit 0.8" 8x16 LED Matrix FeatherWing Display.
 //
@@ -263,7 +222,7 @@ func main() {
         syscall.SIGTERM,
         syscall.SIGQUIT)
 
-    device, err := initialize(DEFAULT_ADDRESS)
+    device, err := devices.InitHt16k33(DEFAULT_ADDRESS)
     if err != nil {
         log.Fatal(err)
     }

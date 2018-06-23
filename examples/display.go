@@ -18,6 +18,7 @@ package main
 
 import (
     "fmt"
+    "log"
     "os"
     "os/signal"
     "syscall"
@@ -66,6 +67,12 @@ func main() {
         syscall.SIGINT,
         syscall.SIGTERM,
         syscall.SIGQUIT)
+
+    device, err := devices.InitHt16k33(devices.DEFAULT_54AD_ADDRESS)
+    if err != nil {
+        log.Fatal(err)
+    }
+    devices.SetConnection(device)
 
     // We want to capture CTRL+C to first clear the display and then exit.
     // We don't want to leave the display lit on an abort.
