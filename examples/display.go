@@ -27,9 +27,8 @@ import (
 
 func help() {
     helpText := []string {
-        "\nHT16K33 Test Utility",
-        "For the Adafruit Quad Alphanumeric FeatherWing Display\n",
-        "Command line actions:",
+        "\n For the Adafruit Quad Alphanumeric FeatherWing Display\n",
+        " Command line actions:",
         "  bit #    - Takes a bit pattern in binary format, up to 16 bits long, and displays it on a single digit.",
         "           - Leading binary zeros are not necessary.",
         "           - 0000001010111011, which displays '@', and 1010111011 are equivalent.",
@@ -44,7 +43,7 @@ func help() {
         "  table    - Scrolls all defined alphanumeric entries in the internal mapping table across the display, right to left.",
         "  test     - Fully tests all four characters, one at a time, left to right.",
         "           - All segments, including decimal point, are lit.",
-        "No command - this help\n",
+        " No command - this help\n",
         " Examples:",
         " display bit 0000001010111011",
         " display scroll \"The quick brown fox\"",
