@@ -18,54 +18,25 @@ package main
 
 import (
     "fmt"
+    "log"
     "time"
     "os"
     "os/signal"
     "syscall"
 
     "gobot.io/x/gobot/drivers/i2c"
-    "gobot.io/x/gobot/platforms/raspi"
+
+    "github.com/wbeebe/rpi/devices"
 )
 
 const DEFAULT_ADDRESS int = 0x70
-
-// Commands to send the HT16K33
-//
-const (
-    HT16K33_SYSTEM_SETUP byte = 0x20
-    HT16K33_OSCILLATOR_ON byte = 0x01
-    HT16K33_DISPLAY_SETUP byte = 0x80
-    HT16K33_DISPLAY_ON byte = 0x01
-    HT16K33_BLINK_OFF byte = 0x00
-    HT16K33_BLINK_2HZ byte = 0x02
-    HT16K33_BLINK_1HZ byte = 0x04
-    HT16K33_BLINK_HALFHZ byte = 0x06
-    HT16K33_CMD_BRIGHTNESS byte = 0xE0
-)
-
-var con i2c.Connection
-
-func initialize() i2c.Connection {
-    adapter := raspi.NewAdaptor()
-    adapter.Connect()
-    bus := adapter.GetDefaultBus()
-    fmt.Printf("bus %d\n", bus)
-    con, _ = adapter.GetConnection(DEFAULT_ADDRESS, bus)
-    // Turn on chip's internal oscillator.
-    con.WriteByte(HT16K33_SYSTEM_SETUP | HT16K33_OSCILLATOR_ON)
-    // Turn on the display. YOU HAVE TO SEND THIS.
-    con.WriteByte(HT16K33_DISPLAY_SETUP | HT16K33_DISPLAY_ON)
-    // Set for maximum LED brightness.
-    con.WriteByte(HT16K33_CMD_BRIGHTNESS | 0x0f)
-    return con
-}
 
 // A very simple test for the Adafruit 0.8" 8x16 LED Matrix
 // FeatherWing Display.
 // "Bounces" a row of lit LEDs from top to bottom and back to the top, left to right,
 // leaving a single straight line of lit LEDs across the top of the display.
 //
-func lightAll() {
+func lightAll(device i2c.Connection) {
     block := make([]byte, 16)
     upDirection := make([]bool, 16)
     altIndex := []int{0,2,4,6,8,10,12,14,1,3,5,7,9,11,13,15}
@@ -74,7 +45,7 @@ func lightAll() {
     }
 
     for i := 0 ; i < 2 * len(block) ; i++ {
-        con.WriteBlockData(0, block)
+        device.WriteBlockData(0, block)
         if i > 0 {
             time.Sleep(25 * time.Millisecond)
         }
@@ -93,11 +64,11 @@ func lightAll() {
 
 // Just turns every lit LED off.
 //
-func darkenAll() {
+func darkenAll(device i2c.Connection) {
     // Turn off every bit on the displays.
     //
     block := make([]byte, 16)
-    con.WriteBlockData(0, block)
+    device.WriteBlockData(0, block)
 }
 
 func main() {
@@ -111,7 +82,10 @@ func main() {
         syscall.SIGTERM,
         syscall.SIGQUIT)
 
-    con := initialize()
+    device, err := devices.InitHt16k33(DEFAULT_ADDRESS)
+    if err != nil {
+        log.Fatal(err)
+    }
 
     // We want to capture CTRL+C to first clear the display and then exit.
     // We don't want to leave the display lit on an abort.
@@ -123,20 +97,23 @@ func main() {
             case syscall.SIGINT:
                 // CTRL+C
                 fmt.Println()
-                darkenAll()
-                con.Close()
+                darkenAll(device)
+                device.Close()
                 os.Exit(0)
             default:
             }
         }
     }()
 
-    darkenAll()
+    darkenAll(device)
+
     for i := 0 ; i < 6 ; i++ {
-        lightAll()
+        lightAll(device)
     }
+
     time.Sleep(30 * time.Millisecond)
-    darkenAll()
-    con.Close()
+
+    darkenAll(device)
+    device.Close()
 }
 
