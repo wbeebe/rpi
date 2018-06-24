@@ -30,51 +30,10 @@ import (
     "github.com/wbeebe/rpi/devices"
 )
 
-const DEFAULT_ADDRESS int = 0x70
+const DEFAULT_816_ADDRESS int = 0x70
 
 // An application for the Adafruit 0.8" 8x16 LED Matrix FeatherWing Display.
 //
-
-var buffer []byte = make([]byte, 16)
-var altIndex []int = []int{0,2,4,6,8,10,12,14,1,3,5,7,9,11,13,15}
-
-// Loads the buffer with data, in the pattern necessary for proper
-// displaying. Works with the concept of blocks that matches the
-// 8x8 LED arrays on the display. Block 0 is on the left, block 1
-// on the right.
-//
-func loadBuffer(bits []byte, block int) {
-    block &= 0x01
-
-    for i := 0; i < len(bits) ; i++ {
-        buffer[altIndex[i + block * 8]] = bits[i]
-    }
-}
-
-// A wrapper for WriteBlockData for displaying the buffer.
-//
-func drawBuffer(device i2c.Connection) {
-    device.WriteBlockData(0, buffer)
-}
-
-// Rotates the buffer contents from left to right.
-//
-func rotateBuffer() {
-    end := buffer[altIndex[len(buffer) - 1]]
-
-    for i := len(buffer) - 1 ; i > 0 ; i-- {
-        buffer[altIndex[i]] = buffer[altIndex[i-1]]
-    }
-
-    buffer[0] = end
-}
-
-// Turns every lit LED off by writing binary zeros to all locations.
-//
-func darkenAll(device i2c.Connection) {
-    block := make([]byte, 16)
-    device.WriteBlockData(0, block)
-}
 
 // Higher level functions.
 //
@@ -88,18 +47,22 @@ var blockX []byte       = []byte {0x81, 0x42, 0x24, 0x18, 0x18, 0x24, 0x42, 0x81
 var blockFace []byte    = []byte {0x3C, 0x42, 0xA9, 0x89, 0x89, 0xA9, 0x42, 0x3C}
 var blockFrown []byte   = []byte {0x3C, 0x42, 0xA5, 0x89, 0x89, 0xA5, 0x42, 0x3C}
 var blockSmile []byte   = []byte {0x3C, 0x42, 0xA9, 0x85, 0x85, 0xA9, 0x42, 0x3C}
+var blockFslash []byte  = []byte {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80}
+var blockBslash []byte  = []byte {0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01}
 
 // So why define this twice? Because I needed a set to display in insertion order,
 // and a map to individually address each glyph by string name.
 //
 var shapeSet []*[]byte =
-   []*[]byte {&blockCircle, &blockSquare, &blockDiamond, &blockCheck, &blockX, &blockFace, &blockFrown, &blockSmile}
+   []*[]byte {&blockCircle, &blockSquare, &blockDiamond, &blockCheck, &blockFslash, &blockBslash, &blockX, &blockFace, &blockFrown, &blockSmile}
 
 var shapeTable= map[string]*[]byte{
     "circle": &blockCircle,
     "square": &blockSquare,
     "diamond": &blockDiamond,
     "check": &blockCheck,
+    "forwardSlash": &blockFslash,
+    "backSlash": &blockBslash,
     "x": &blockX,
     "face": &blockFace,
     "frown": &blockFrown,
@@ -124,17 +87,17 @@ func listGlyphNames() {
 //
 func simpleAnimation(device i2c.Connection) {
     for {
-        loadBuffer(*shapeTable["face"], 0)
-        loadBuffer(*shapeTable["frown"], 1)
-        drawBuffer(device)
+        devices.LoadBuffer(*shapeTable["face"], 0)
+        devices.LoadBuffer(*shapeTable["frown"], 1)
+        devices.DrawBuffer(device)
         time.Sleep( 500 * time.Millisecond )
-        loadBuffer(*shapeTable["frown"], 0)
-        loadBuffer(*shapeTable["smile"], 1)
-        drawBuffer(device)
+        devices.LoadBuffer(*shapeTable["frown"], 0)
+        devices.LoadBuffer(*shapeTable["smile"], 1)
+        devices.DrawBuffer(device)
         time.Sleep( 500 * time.Millisecond )
-        loadBuffer(*shapeTable["smile"], 0)
-        loadBuffer(*shapeTable["face"], 1)
-        drawBuffer(device)
+        devices.LoadBuffer(*shapeTable["smile"], 0)
+        devices.LoadBuffer(*shapeTable["face"], 1)
+        devices.DrawBuffer(device)
         time.Sleep( time.Second )
     }
 }
@@ -142,49 +105,45 @@ func simpleAnimation(device i2c.Connection) {
 // Scroll's two glyphs across the display.
 //
 func simpleScroll(device i2c.Connection, glyphName string) {
-    loadBuffer(*shapeTable[glyphName], 0)
-    loadBuffer(*shapeTable[glyphName], 1)
+    devices.LoadBuffer(*shapeTable[glyphName], 0)
+    devices.LoadBuffer(*shapeTable[glyphName], 1)
 
     for {
-        drawBuffer(device)
+        devices.DrawBuffer(device)
         time.Sleep( 250 * time.Millisecond )
-        rotateBuffer()
+        devices.RotateBuffer()
     }
 }
 
 // Displays a simple triangle wave across the display.
 //
-func wave(device i2c.Connection) {
-    var bit byte = 1
-    var blen int= len(buffer)
+func wave(device i2c.Connection, cycles int) {
+    devices.LoadBuffer(blockBslash, 0)
+    devices.LoadBuffer(blockFslash, 1)
 
-    for i := 0 ; i < blen/2 ; i++ {
-        buffer[altIndex[i]] = bit
-        buffer[altIndex[blen - 1 - i]] = bit
-        bit <<= 1
-    }
-
-    for {
-        device.WriteBlockData(0, buffer)
-        time.Sleep( 30 * time.Millisecond)
-        rotateBuffer()
+    for c := 0 ; c < cycles ; c++ {
+        for i := 0 ; i < 16 ; i++ {
+            devices.DrawBuffer(device)
+            time.Sleep( 30 * time.Millisecond)
+            devices.RotateBuffer()
+        }
     }
 }
 
 func shapes(device i2c.Connection) {
     for _, glyph := range shapeSet {
-        loadBuffer(*glyph, 0)
-        loadBuffer(*glyph, 1)
-        drawBuffer(device)
+        devices.LoadBuffer(*glyph, 0)
+        devices.LoadBuffer(*glyph, 1)
+        devices.DrawBuffer(device)
         time.Sleep( 500 * time.Millisecond)
     }
 }
 
 func vt52(device i2c.Connection) {
     for _, char := range devices.VT52rom {
-        loadBuffer(char, 0)
-        loadBuffer(char, 1)
-        drawBuffer(device)
+        devices.LoadBuffer(char, 0)
+        devices.LoadBuffer(char, 1)
+        devices.DrawBuffer(device)
         time.Sleep( 350 * time.Millisecond)
     }
 }
@@ -200,7 +159,7 @@ func help() {
         "        - 'animate scroll list' lists all glyphs.",
         " vt52   - Displays all the old VT-52 ROM characters",
         "        - translated to work with the Adafruit display.",
-        " wave   - Displays a scrolling triangle wave.\n",
+        " wave   - Displays a scrolling triangle wave for 10 cycles.\n",
         " No command - this help\n",
     }
 
@@ -222,7 +181,7 @@ func main() {
         syscall.SIGTERM,
         syscall.SIGQUIT)
 
-    device, err := devices.InitHt16k33(DEFAULT_ADDRESS)
+    device, err := devices.InitHt16k33(DEFAULT_816_ADDRESS)
     if err != nil {
         log.Fatal(err)
     }
@@ -237,7 +196,7 @@ func main() {
             case syscall.SIGINT:
                 // CTRL+C
                 fmt.Println()
-                darkenAll(device)
+                devices.ClearAll816(device)
                 device.Close()
                 os.Exit(0)
             default:
@@ -276,7 +235,7 @@ func main() {
 
         simpleScroll(device, argument)
     case "wave":
-        wave(device)
+        wave(device, 10)
     case "shapes":
         shapes(device)
     case "vt52":
@@ -285,7 +244,7 @@ func main() {
         help()
     }
 
-    darkenAll(device)
+    devices.ClearAll816(device)
     device.Close()
 }
 
