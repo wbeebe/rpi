@@ -31,44 +31,46 @@ import (
 
 const DEFAULT_ADDRESS int = 0x70
 
-// A very simple test for the Adafruit 0.8" 8x16 LED Matrix
-// FeatherWing Display.
-// "Bounces" a row of lit LEDs from top to bottom and back to the top, left to right,
-// leaving a single straight line of lit LEDs across the top of the display.
+// A very simple test for the Adafruit 8x16 LED Matrix FeatherWing Display.
+// "Bounces" a row of lit LEDs from top to bottom and back to the top,
+// left to right, leaving a single straight line of lit LEDs across
+// the top of the display.
 //
-func lightAll(device i2c.Connection) {
-    block := make([]byte, 16)
+func bounce(device i2c.Connection) {
+    buffer := make([]byte, 16)
     upDirection := make([]bool, 16)
     altIndex := []int{0,2,4,6,8,10,12,14,1,3,5,7,9,11,13,15}
-    for i := range block {
-        block[i] = 0x80
+
+    for i := range buffer {
+        buffer[i] = 0x80
     }
 
-    for i := 0 ; i < 2 * len(block) ; i++ {
-        device.WriteBlockData(0, block)
+    for i := 0 ; i < 2 * len(buffer) ; i++ {
+        device.WriteBlockData(0, buffer)
+
         if i > 0 {
             time.Sleep(25 * time.Millisecond)
         }
+
         for j := i ; j >= 0 ; j-- {
-            if j < len(block) && block[altIndex[j]] > 1 && ! upDirection[altIndex[j]] {
-                block[altIndex[j]] >>= 1
-            } else if j < len(block) && block[altIndex[j]] == 1 {
+            if j < len(buffer) && buffer[altIndex[j]] > 1 && ! upDirection[altIndex[j]] {
+                buffer[altIndex[j]] >>= 1
+            } else if j < len(buffer) && buffer[altIndex[j]] == 1 {
                 upDirection[altIndex[j]] = true
             }
-            if j < len(block) && block[altIndex[j]] < 0x80 && upDirection[altIndex[j]] {
-                block[altIndex[j]] <<= 1
+
+            if j < len(buffer) && buffer[altIndex[j]] < 0x80 && upDirection[altIndex[j]] {
+                buffer[altIndex[j]] <<= 1
             }
         }
     }
 }
 
-// Just turns every lit LED off.
+// Turn every lit LED off by writing all zeroes.
 //
-func darkenAll(device i2c.Connection) {
-    // Turn off every bit on the displays.
-    //
-    block := make([]byte, 16)
-    device.WriteBlockData(0, block)
+func clear(device i2c.Connection) {
+    buffer := make([]byte, 16)
+    device.WriteBlockData(0, buffer)
 }
 
 func main() {
@@ -97,7 +99,7 @@ func main() {
             case syscall.SIGINT:
                 // CTRL+C
                 fmt.Println()
-                darkenAll(device)
+                clear(device)
                 device.Close()
                 os.Exit(0)
             default:
@@ -105,15 +107,15 @@ func main() {
         }
     }()
 
-    darkenAll(device)
+    clear(device)
 
     for i := 0 ; i < 6 ; i++ {
-        lightAll(device)
+        bounce(device)
     }
 
     time.Sleep(30 * time.Millisecond)
 
-    darkenAll(device)
+    clear(device)
     device.Close()
 }
 
