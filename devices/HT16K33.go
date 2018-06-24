@@ -45,10 +45,29 @@ const (
     HT16K33_CMD_BRIGHTNESS byte = 0xE0
 )
 
+type HT16K33Driver struct {
+    name string
+    address int
+    connection i2c.Connection
+}
+
+func NewHT16K33Driver(addr int) *HT16K33Driver {
+    driver := &HT16K33Driver {
+        name: "HT16K33",
+        address: addr,
+    }
+
+    return driver
+}
+
+func (driver *HT16K33Driver) Name() string { return driver.name }
+func (driver *HT16K33Driver) SetName(newName string ) { driver.name = newName }
+func (driver *HT16K33Driver) Connection() i2c.Connection { return driver.connection }
+
 // Initializes and opens a connection to an HT16K33.
 // Returns the i2c.Connection on sucess, err on failure.
 //
-func InitHt16k33(address int) (device i2c.Connection, err error) {
+func (driver *HT16K33Driver) Start() (err error) {
     adapter := raspi.NewAdaptor()
     adapter.Connect()
     bus := adapter.GetDefaultBus()
@@ -56,21 +75,32 @@ func InitHt16k33(address int) (device i2c.Connection, err error) {
     // Check to see if the device actually is on the I2C buss.
     // If it is then use it, else return an error.
     //
-    if device, err := adapter.GetConnection(address, bus) ; err == nil {
+    if device, err := adapter.GetConnection(driver.address, bus) ; err == nil {
         if _, err := device.ReadByte() ; err == nil {
-            fmt.Printf(" Using device 0x%x / %d on bus %d\n", address, address, bus)
+            fmt.Printf(" Using device 0x%x / %d on bus %d\n", driver.address, driver.address, bus)
         } else {
-            return device, fmt.Errorf(" Could not find device 0x%x / %d", address, address)
+            return fmt.Errorf(" Could not find device 0x%x / %d", driver.address, driver.address)
         }
     }
 
-    device, _ = adapter.GetConnection(address, bus)
+    driver.connection, _ = adapter.GetConnection(driver.address, bus)
     // Turn on chip's internal oscillator.
-    device.WriteByte(HT16K33_SYSTEM_SETUP | HT16K33_OSCILLATOR_ON)
+    driver.connection.WriteByte(HT16K33_SYSTEM_SETUP | HT16K33_OSCILLATOR_ON)
     // Turn on the display. YOU HAVE TO SEND THIS.
-    device.WriteByte(HT16K33_DISPLAY_SETUP | HT16K33_DISPLAY_ON)
+    driver.connection.WriteByte(HT16K33_DISPLAY_SETUP | HT16K33_DISPLAY_ON)
     // Set for maximum LED brightness.
-    device.WriteByte(HT16K33_CMD_BRIGHTNESS | 0x0f)
-    return device, nil
+    driver.connection.WriteByte(HT16K33_CMD_BRIGHTNESS | 0x0f)
+    return nil
 }
 
+// Clear the device of all data, and in the process turn off
+// any LEDs that might be on.
+//
+func (driver *HT16K33Driver) Clear() {
+    buffer := make([]byte, 16)
+    driver.connection.WriteBlockData(0, buffer)
+}
+
+func (driver *HT16K33Driver) Close() {
+    driver.connection.Close()
+}
