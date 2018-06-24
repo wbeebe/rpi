@@ -26,55 +26,13 @@ import (
     "syscall"
 
     "gobot.io/x/gobot/drivers/i2c"
-    "gobot.io/x/gobot/platforms/raspi"
+
+    "github.com/wbeebe/rpi/devices"
 )
 
 const DEFAULT_ADDRESS int = 0x70
 
-// Commands to send the HT16K33
-//
-const (
-    HT16K33_SYSTEM_SETUP byte = 0x20
-    HT16K33_OSCILLATOR_ON byte = 0x01
-    HT16K33_DISPLAY_SETUP byte = 0x80
-    HT16K33_DISPLAY_ON byte = 0x01
-    HT16K33_BLINK_OFF byte = 0x00
-    HT16K33_BLINK_2HZ byte = 0x02
-    HT16K33_BLINK_1HZ byte = 0x04
-    HT16K33_BLINK_HALFHZ byte = 0x06
-    HT16K33_CMD_BRIGHTNESS byte = 0xE0
-)
-
-var address = DEFAULT_ADDRESS
-var device i2c.Connection
-
-func initialize() (device i2c.Connection, err error) {
-    adapter := raspi.NewAdaptor()
-    adapter.Connect()
-    bus := adapter.GetDefaultBus()
-
-    // Check to see if the device actually is on the I2C buss.
-    // If it is then use it, else return an error.
-    //
-    if device, err := adapter.GetConnection(address, bus) ; err == nil {
-        if _, err := device.ReadByte() ; err == nil {
-            fmt.Printf(" Using device 0x%x / %d on bus %d\n", address, address, bus)
-        } else {
-            return device, fmt.Errorf(" Could not find device 0x%x / %d", address, address)
-        }
-    }
-
-    device, _ = adapter.GetConnection(address, bus)
-    // Turn on chip's internal oscillator.
-    device.WriteByte(HT16K33_SYSTEM_SETUP | HT16K33_OSCILLATOR_ON)
-    // Turn on the display. YOU HAVE TO SEND THIS.
-    device.WriteByte(HT16K33_DISPLAY_SETUP | HT16K33_DISPLAY_ON)
-    // Set for maximum LED brightness.
-    device.WriteByte(HT16K33_CMD_BRIGHTNESS | 0x0f)
-    return device, nil
-}
-
-func lightAll() {
+func lightAll(device i2c.Connection) {
     // First four digits for Alphanumeric and 8x16 Matrix
     // FeatherWing Displays.
     //
@@ -107,7 +65,7 @@ func lightAll() {
     device.WriteWordData(14, 0xFFFF)
 }
 
-func darkenAll() {
+func darkenAll(device i2c.Connection) {
     // Turn off every segment on every digit.
     //
     var data []byte = make([]byte, 16)
@@ -148,6 +106,9 @@ func main() {
         addresses = append(addresses, DEFAULT_ADDRESS)
     }
 
+    var device i2c.Connection
+    var err error
+
     // We want to capture CTRL+C to first clear the display and then exit.
     // We don't want to leave the display lit on an abort.
     //
@@ -158,7 +119,7 @@ func main() {
             case syscall.SIGINT:
                 // CTRL+C
                 fmt.Println()
-                darkenAll()
+                darkenAll(device)
                 device.Close()
                 os.Exit(0)
             default:
@@ -170,18 +131,17 @@ func main() {
     // aborting if any of the devices are unreachable.
     //
     for _, addr := range addresses {
-        address = int(addr)
+        address := int(addr)
 
-        dev, err := initialize()
+        device, err = devices.InitHt16k33(address)
         if err != nil {
             log.Fatal(err)
         }
 
-        device = dev
-        darkenAll()
-        lightAll()
+        darkenAll(device)
+        lightAll(device)
         time.Sleep(2 * time.Second)
-        darkenAll()
+        darkenAll(device)
         device.Close()
     }
 
