@@ -65,13 +65,6 @@ func lightAll(device i2c.Connection) {
     device.WriteWordData(14, 0xFFFF)
 }
 
-func darkenAll(device i2c.Connection) {
-    // Turn off every segment on every digit.
-    //
-    var data []byte = make([]byte, 16)
-    device.WriteBlockData(0, data)
-}
-
 func main() {
     // Hook the various system abort calls for us to use or ignore as we
     // see fit. In particular hook SIGINT, or CTRL+C for below.
@@ -106,12 +99,11 @@ func main() {
         addresses = append(addresses, DEFAULT_ADDRESS)
     }
 
-    var device i2c.Connection
-    var err error
-
     // We want to capture CTRL+C to first clear the display and then exit.
     // We don't want to leave the display lit on an abort.
     //
+    ht := devices.NewHT16K33Driver(DEFAULT_ADDRESS)
+
     go func() {
         for {
             signal := <-signal_chan
@@ -119,8 +111,8 @@ func main() {
             case syscall.SIGINT:
                 // CTRL+C
                 fmt.Println()
-                darkenAll(device)
-                device.Close()
+                ht.Clear()
+                ht.Close()
                 os.Exit(0)
             default:
             }
@@ -132,18 +124,19 @@ func main() {
     //
     for _, addr := range addresses {
         address := int(addr)
+        ht16k33 := devices.NewHT16K33Driver(address)
+        ht = ht16k33
 
-        device, err = devices.InitHt16k33(address)
+        err := ht16k33.Start()
         if err != nil {
             log.Fatal(err)
         }
 
-        darkenAll(device)
-        lightAll(device)
+        ht16k33.Clear()
+        lightAll(ht16k33.Connection())
         time.Sleep(2 * time.Second)
-        darkenAll(device)
-        device.Close()
+        ht16k33.Clear()
+        ht16k33.Close()
     }
-
 }
 
