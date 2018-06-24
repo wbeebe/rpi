@@ -66,14 +66,9 @@ func bounce(device i2c.Connection) {
     }
 }
 
-// Turn every lit LED off by writing all zeroes.
-//
-func clear(device i2c.Connection) {
-    buffer := make([]byte, 16)
-    device.WriteBlockData(0, buffer)
-}
-
 func main() {
+    ht16k33 := devices.NewHT16K33Driver(DEFAULT_ADDRESS)
+
     // Hook the various system abort calls for us to use or ignore as we
     // see fit. In particular hook SIGINT, or CTRL+C for below.
     //
@@ -84,7 +79,7 @@ func main() {
         syscall.SIGTERM,
         syscall.SIGQUIT)
 
-    device, err := devices.InitHt16k33(DEFAULT_ADDRESS)
+    err := ht16k33.Start()
     if err != nil {
         log.Fatal(err)
     }
@@ -99,23 +94,23 @@ func main() {
             case syscall.SIGINT:
                 // CTRL+C
                 fmt.Println()
-                clear(device)
-                device.Close()
+                ht16k33.Clear()
+                ht16k33.Close()
                 os.Exit(0)
             default:
             }
         }
     }()
 
-    clear(device)
+    ht16k33.Clear()
 
     for i := 0 ; i < 6 ; i++ {
-        bounce(device)
+        bounce(ht16k33.Connection())
     }
 
     time.Sleep(30 * time.Millisecond)
 
-    clear(device)
-    device.Close()
+    ht16k33.Clear()
+    ht16k33.Close()
 }
 
