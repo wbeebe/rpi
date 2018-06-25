@@ -30,7 +30,7 @@ import (
     "github.com/wbeebe/rpi/devices"
 )
 
-const DEFAULT_816_ADDRESS int = 0x70
+const DEFAULT_ADDRESS int = 0x70
 
 // An application for the Adafruit 0.8" 8x16 LED Matrix FeatherWing Display.
 //
@@ -171,6 +171,8 @@ func help() {
 //
 //
 func main() {
+    ht16k33 := devices.NewHT16K33Driver(DEFAULT_ADDRESS)
+
     // Hook the various system abort calls for us to use or ignore as we
     // see fit. In particular hook SIGINT, or CTRL+C for below.
     //
@@ -181,7 +183,7 @@ func main() {
         syscall.SIGTERM,
         syscall.SIGQUIT)
 
-    device, err := devices.InitHt16k33(DEFAULT_816_ADDRESS)
+    err := ht16k33.Start()
     if err != nil {
         log.Fatal(err)
     }
@@ -196,8 +198,8 @@ func main() {
             case syscall.SIGINT:
                 // CTRL+C
                 fmt.Println()
-                devices.ClearAll816(device)
-                device.Close()
+                ht16k33.Clear()
+                ht16k33.Close()
                 os.Exit(0)
             default:
             }
@@ -215,7 +217,7 @@ func main() {
 
     switch action {
     case "faces":
-        simpleAnimation(device)
+        simpleAnimation(ht16k33.Connection())
     case "scroll":
         if len(argument) == 0 {
             argument = "smile"
@@ -233,18 +235,18 @@ func main() {
             }
         }
 
-        simpleScroll(device, argument)
+        simpleScroll(ht16k33.Connection(), argument)
     case "wave":
-        wave(device, 10)
+        wave(ht16k33.Connection(), 10)
     case "shapes":
-        shapes(device)
+        shapes(ht16k33.Connection())
     case "vt52":
-        vt52(device)
+        vt52(ht16k33.Connection())
     default:
         help()
     }
 
-    devices.ClearAll816(device)
-    device.Close()
+    ht16k33.Clear()
+    ht16k33.Close()
 }
 
