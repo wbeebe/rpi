@@ -97,10 +97,12 @@ func (driver *HT16K33Driver) Start() (err error) {
 // any LEDs that might be on.
 //
 func (driver *HT16K33Driver) Clear() {
-    buffer := make([]byte, 16)
-    driver.connection.WriteBlockData(0, buffer)
+    if driver.connection != nil {
+        buffer := make([]byte, 16)
+        driver.connection.WriteBlockData(0, buffer)
+    }
 }
 
 func (driver *HT16K33Driver) Close() {
-    driver.connection.Close()
+    if driver.connection != nil { driver.connection.Close() }
 }
