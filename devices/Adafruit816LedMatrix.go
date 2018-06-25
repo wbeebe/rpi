@@ -54,10 +54,3 @@ func RotateBuffer() {
     buffer[0] = end
 }
 
-// Turns every lit LED off by writing binary zeros to all locations.
-//
-func ClearAll816(device i2c.Connection) {
-    block := make([]byte, 16)
-    device.WriteBlockData(0, block)
-}
-
