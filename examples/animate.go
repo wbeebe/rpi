@@ -25,8 +25,6 @@ import (
     "os/signal"
     "syscall"
 
-    "gobot.io/x/gobot/drivers/i2c"
-
     "github.com/wbeebe/rpi/devices"
 )
 
@@ -85,65 +83,65 @@ func listGlyphNames() {
 // Simple animation with smiley faces. Similar to what Adafruit shows on their site
 // with these 8x16 displays.
 //
-func simpleAnimation(device i2c.Connection) {
+func simpleAnimation(device *devices.HT16K33Driver) {
     for {
-        devices.LoadBuffer(*shapeTable["face"], 0)
-        devices.LoadBuffer(*shapeTable["frown"], 1)
-        devices.DrawBuffer(device)
+        device.LoadBuffer(*shapeTable["face"], 0)
+        device.LoadBuffer(*shapeTable["frown"], 1)
+        device.DrawBuffer()
         time.Sleep( 500 * time.Millisecond )
-        devices.LoadBuffer(*shapeTable["frown"], 0)
-        devices.LoadBuffer(*shapeTable["smile"], 1)
-        devices.DrawBuffer(device)
+        device.LoadBuffer(*shapeTable["frown"], 0)
+        device.LoadBuffer(*shapeTable["smile"], 1)
+        device.DrawBuffer()
         time.Sleep( 500 * time.Millisecond )
-        devices.LoadBuffer(*shapeTable["smile"], 0)
-        devices.LoadBuffer(*shapeTable["face"], 1)
-        devices.DrawBuffer(device)
+        device.LoadBuffer(*shapeTable["smile"], 0)
+        device.LoadBuffer(*shapeTable["face"], 1)
+        device.DrawBuffer()
         time.Sleep( time.Second )
     }
 }
 
 // Scroll's two glyphs across the display.
 //
-func simpleScroll(device i2c.Connection, glyphName string) {
-    devices.LoadBuffer(*shapeTable[glyphName], 0)
-    devices.LoadBuffer(*shapeTable[glyphName], 1)
+func simpleScroll(device *devices.HT16K33Driver, glyphName string) {
+    device.LoadBuffer(*shapeTable[glyphName], 0)
+    device.LoadBuffer(*shapeTable[glyphName], 1)
 
     for {
-        devices.DrawBuffer(device)
+        device.DrawBuffer()
         time.Sleep( 250 * time.Millisecond )
-        devices.RotateBuffer()
+        device.RotateBuffer()
     }
 }
 
 // Displays a simple triangle wave across the display.
 //
-func wave(device i2c.Connection, cycles int) {
-    devices.LoadBuffer(blockBslash, 0)
-    devices.LoadBuffer(blockFslash, 1)
+func wave(device *devices.HT16K33Driver, cycles int) {
+    device.LoadBuffer(blockBslash, 0)
+    device.LoadBuffer(blockFslash, 1)
 
     for c := 0 ; c < cycles ; c++ {
         for i := 0 ; i < 16 ; i++ {
-            devices.DrawBuffer(device)
+            device.DrawBuffer()
             time.Sleep( 30 * time.Millisecond)
-            devices.RotateBuffer()
+            device.RotateBuffer()
         }
     }
 }
 
-func shapes(device i2c.Connection) {
+func shapes(device *devices.HT16K33Driver) {
     for _, glyph := range shapeSet {
-        devices.LoadBuffer(*glyph, 0)
-        devices.LoadBuffer(*glyph, 1)
-        devices.DrawBuffer(device)
+        device.LoadBuffer(*glyph, 0)
+        device.LoadBuffer(*glyph, 1)
+        device.DrawBuffer()
         time.Sleep( 500 * time.Millisecond)
     }
 }
 
-func vt52(device i2c.Connection) {
+func vt52(device *devices.HT16K33Driver) {
     for _, char := range devices.VT52rom {
-        devices.LoadBuffer(char, 0)
-        devices.LoadBuffer(char, 1)
-        devices.DrawBuffer(device)
+        device.LoadBuffer(char, 0)
+        device.LoadBuffer(char, 1)
+        device.DrawBuffer()
         time.Sleep( 350 * time.Millisecond)
     }
 }
@@ -217,7 +215,7 @@ func main() {
 
     switch action {
     case "faces":
-        simpleAnimation(ht16k33.Connection())
+        simpleAnimation(ht16k33)
     case "scroll":
         if len(argument) == 0 {
             argument = "smile"
@@ -235,13 +233,13 @@ func main() {
             }
         }
 
-        simpleScroll(ht16k33.Connection(), argument)
+        simpleScroll(ht16k33, argument)
     case "wave":
-        wave(ht16k33.Connection(), 10)
+        wave(ht16k33, 10)
     case "shapes":
-        shapes(ht16k33.Connection())
+        shapes(ht16k33)
     case "vt52":
-        vt52(ht16k33.Connection())
+        vt52(ht16k33)
     default:
         help()
     }
