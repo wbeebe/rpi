@@ -83,7 +83,7 @@ func listGlyphNames() {
 // Simple animation with smiley faces. Similar to what Adafruit shows on their site
 // with these 8x16 displays.
 //
-func simpleAnimation(device *devices.HT16K33Driver) {
+func simpleAnimation(device *devices.Adafruit816LedMatrix) {
     for {
         device.LoadBuffer(*shapeTable["face"], 0)
         device.LoadBuffer(*shapeTable["frown"], 1)
@@ -102,7 +102,7 @@ func simpleAnimation(device *devices.HT16K33Driver) {
 
 // Scroll's two glyphs across the display.
 //
-func simpleScroll(device *devices.HT16K33Driver, glyphName string) {
+func simpleScroll(device *devices.Adafruit816LedMatrix, glyphName string) {
     device.LoadBuffer(*shapeTable[glyphName], 0)
     device.LoadBuffer(*shapeTable[glyphName], 1)
 
@@ -115,7 +115,7 @@ func simpleScroll(device *devices.HT16K33Driver, glyphName string) {
 
 // Displays a simple triangle wave across the display.
 //
-func wave(device *devices.HT16K33Driver, cycles int) {
+func wave(device *devices.Adafruit816LedMatrix, cycles int) {
     device.LoadBuffer(blockBslash, 0)
     device.LoadBuffer(blockFslash, 1)
 
@@ -128,7 +128,7 @@ func wave(device *devices.HT16K33Driver, cycles int) {
     }
 }
 
-func shapes(device *devices.HT16K33Driver) {
+func shapes(device *devices.Adafruit816LedMatrix) {
     for _, glyph := range shapeSet {
         device.LoadBuffer(*glyph, 0)
         device.LoadBuffer(*glyph, 1)
@@ -137,7 +137,7 @@ func shapes(device *devices.HT16K33Driver) {
     }
 }
 
-func vt52(device *devices.HT16K33Driver) {
+func vt52(device *devices.Adafruit816LedMatrix) {
     for _, char := range devices.VT52rom {
         device.LoadBuffer(char, 0)
         device.LoadBuffer(char, 1)
@@ -170,6 +170,7 @@ func help() {
 //
 func main() {
     ht16k33 := devices.NewHT16K33Driver(DEFAULT_ADDRESS)
+    af816 := devices.NewAdafruit816LedMatrix(ht16k33)
 
     // Hook the various system abort calls for us to use or ignore as we
     // see fit. In particular hook SIGINT, or CTRL+C for below.
@@ -215,7 +216,7 @@ func main() {
 
     switch action {
     case "faces":
-        simpleAnimation(ht16k33)
+        simpleAnimation(af816)
     case "scroll":
         if len(argument) == 0 {
             argument = "smile"
@@ -233,13 +234,13 @@ func main() {
             }
         }
 
-        simpleScroll(ht16k33, argument)
+        simpleScroll(af816, argument)
     case "wave":
-        wave(ht16k33, 10)
+        wave(af816, 10)
     case "shapes":
-        shapes(ht16k33)
+        shapes(af816)
     case "vt52":
-        vt52(ht16k33)
+        vt52(af816)
     default:
         help()
     }

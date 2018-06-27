@@ -59,9 +59,6 @@ func NewHT16K33Driver(addr int) *HT16K33Driver {
         address: addr,
     }
 
-    driver.buffer = make([]byte, 16)
-    driver.altIndex = []int{0,2,4,6,8,10,12,14,1,3,5,7,9,11,13,15}
-
     return driver
 }
 
@@ -72,7 +69,7 @@ func (driver *HT16K33Driver) Connection() i2c.Connection { return driver.connect
 // Initializes and opens a connection to an HT16K33.
 // Returns the i2c.Connection on sucess, err on failure.
 //
-func (driver *HT16K33Driver) Start() (err error) {
+func (d *HT16K33Driver) Start() (err error) {
     adapter := raspi.NewAdaptor()
     adapter.Connect()
     bus := adapter.GetDefaultBus()
@@ -80,66 +77,41 @@ func (driver *HT16K33Driver) Start() (err error) {
     // Check to see if the device actually is on the I2C buss.
     // If it is then use it, else return an error.
     //
-    if device, err := adapter.GetConnection(driver.address, bus) ; err == nil {
+    if device, err := adapter.GetConnection(d.address, bus) ; err == nil {
         if _, err := device.ReadByte() ; err == nil {
-            fmt.Printf(" Using device 0x%x / %d on bus %d\n", driver.address, driver.address, bus)
+            fmt.Printf(" Using device 0x%x / %d on bus %d\n", d.address, d.address, bus)
         } else {
-            return fmt.Errorf(" Could not find device 0x%x / %d", driver.address, driver.address)
+            return fmt.Errorf(" Could not find device 0x%x / %d", d.address, d.address)
         }
     }
 
-    driver.connection, _ = adapter.GetConnection(driver.address, bus)
+    d.connection, _ = adapter.GetConnection(d.address, bus)
+
     // Turn on chip's internal oscillator.
-    driver.connection.WriteByte(HT16K33_SYSTEM_SETUP | HT16K33_OSCILLATOR_ON)
+    //
+    d.connection.WriteByte(HT16K33_SYSTEM_SETUP | HT16K33_OSCILLATOR_ON)
+
     // Turn on the display. YOU HAVE TO SEND THIS.
-    driver.connection.WriteByte(HT16K33_DISPLAY_SETUP | HT16K33_DISPLAY_ON)
+    //
+    d.connection.WriteByte(HT16K33_DISPLAY_SETUP | HT16K33_DISPLAY_ON)
+
     // Set for maximum LED brightness.
-    driver.connection.WriteByte(HT16K33_CMD_BRIGHTNESS | 0x0f)
+    //
+    d.connection.WriteByte(HT16K33_CMD_BRIGHTNESS | 0x0f)
+
     return nil
-}
-
-// Load a buffer with data. The block refers to either the even numbered
-// bytes in the buffer (block == 0) or the odd numbered bytes in the
-// buffer (block == 1). Buffer contents are interleaved.
-//
-func (driver *HT16K33Driver) LoadBuffer(bits []byte, block int) {
-    block &= 0x01
-
-    for i := 0; i < len(bits) ; i++ {
-        driver.buffer[driver.altIndex[i + block * 8]] = bits[i]
-    }
-}
-
-// Send the content of the buffer out to the HT16K33 devices on the I2C bus.
-//
-func (driver *HT16K33Driver) DrawBuffer() {
-    if driver.connection != nil {
-        driver.connection.WriteBlockData(0, driver.buffer)
-    }
-}
-
-// Rotates the buffer contents from left to right.
-//
-func (driver *HT16K33Driver) RotateBuffer() {
-    end := driver.buffer[driver.altIndex[len(driver.buffer) - 1]]
-
-    for i := len(driver.buffer) - 1 ; i > 0 ; i-- {
-        driver.buffer[driver.altIndex[i]] = driver.buffer[driver.altIndex[i-1]]
-    }
-
-    driver.buffer[0] = end
 }
 
 // Clear the device of all data, and in the process turn off
 // any LEDs that might be on.
 //
-func (driver *HT16K33Driver) Clear() {
-    if driver.connection != nil {
+func (d *HT16K33Driver) Clear() {
+    if d.connection != nil {
         buffer := make([]byte, 16)
-        driver.connection.WriteBlockData(0, buffer)
+        d.connection.WriteBlockData(0, buffer)
     }
 }
 
-func (driver *HT16K33Driver) Close() {
-    if driver.connection != nil { driver.connection.Close() }
+func (d *HT16K33Driver) Close() {
+    if d.connection != nil { d.connection.Close() }
 }
