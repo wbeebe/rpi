@@ -57,7 +57,12 @@ func help() {
     }
 }
 
+const DEFAULT_ADDRESS int = 0x70
+
 func main() {
+    ht16k33 := devices.NewHT16K33Driver(DEFAULT_ADDRESS)
+    af54 := devices.NewAdafruit54AlphaDisplay(ht16k33)
+
     // Hook the various system abort calls for us to use or ignore as we
     // see fit. In particular hook SIGINT, or CTRL+C for below.
     //
@@ -68,11 +73,17 @@ func main() {
         syscall.SIGTERM,
         syscall.SIGQUIT)
 
-    device, err := devices.InitHt16k33(devices.DEFAULT_54AD_ADDRESS)
+    err := ht16k33.Start()
     if err != nil {
         log.Fatal(err)
     }
-    devices.SetConnection(device)
+
+    ht16k33_2 := devices.NewHT16K33Driver(DEFAULT_ADDRESS + 1)
+    err = ht16k33_2.Start()
+    if err == nil {
+        af54_2 := devices.NewAdafruit54AlphaDisplay(ht16k33_2)
+        af54.SetNextDisplay(af54_2)
+    }
 
     // We want to capture CTRL+C to first clear the display and then exit.
     // We don't want to leave the display lit on an abort.
@@ -84,7 +95,7 @@ func main() {
             case syscall.SIGINT:
                 // CTRL+C
                 fmt.Println()
-                devices.Close()
+                af54.Close()
                 os.Exit(0)
             default:
             }
@@ -107,24 +118,24 @@ func main() {
         if len(argument) == 0 {
             fmt.Printf(" bit command needs a binary argument.\n")
         } else {
-            devices.DisplayBinary(argument)
+            af54.DisplayBinary(argument)
         }
     case "clear":
-        devices.Clear()
+        af54.Clear()
     case "numbers":
-        devices.NumbersTest()
+        af54.NumbersTest()
     case "segments":
-        devices.CycleSegments()
+        af54.CycleSegments()
     case "scroll":
         if len(argument) == 0 {
             fmt.Printf(" scroll command needs a message to display.\n")
         } else {
-            devices.ScrollString(argument)
+            af54.ScrollString(argument)
         }
     case "table":
-        devices.ScrollAlphaTable()
+        af54.ScrollAlphaTable()
     case "test":
-        devices.AllDigitSegmentTest()
+        af54.AllDigitSegmentTest()
     default:
         help()
     }
