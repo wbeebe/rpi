@@ -78,12 +78,22 @@ func main() {
         log.Fatal(err)
     }
 
+    // Look for a second alphanumeric display.
+    //
     ht16k33_2 := devices.NewHT16K33Driver(DEFAULT_ADDRESS + 1)
     err = ht16k33_2.Start()
+    //
+    // If we find one, then create a second alphanumeric display controller
+    // instance, and tell the first alphanumeric controller by passing it
+    // in. This will allow scroll and other aware functions to use both displays
+    // to show scrolling text.
+    //
     if err == nil {
         af54_2 := devices.NewAdafruit54AlphaDisplay(ht16k33_2)
-        af54.SetNextDisplay(af54_2)
+        af54.SetNeighborDisplay(af54_2)
     }
+
+    fmt.Println(" Number of device digits: ", af54.CountDeviceDigits())
 
     // We want to capture CTRL+C to first clear the display and then exit.
     // We don't want to leave the display lit on an abort.
@@ -124,6 +134,12 @@ func main() {
         af54.Clear()
     case "numbers":
         af54.NumbersTest()
+    case "print":
+        if len(argument) == 0 {
+            fmt.Println(" print command needs a string argument.")
+        } else {
+            af54.WriteDirect(argument)
+        }
     case "segments":
         af54.CycleSegments()
     case "scroll":

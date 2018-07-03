@@ -22,7 +22,6 @@ import (
     "strconv"
     "strings"
     "time"
-    // "unicode"
 )
 
 // A map of ASCII characters in string format to bit maps to display
@@ -134,7 +133,7 @@ var alphaTable = map[string]uint16 {
 type Adafruit54AlphaDisplay struct {
     name string
     ht16k33 *HT16K33Driver
-    nextDisplay *Adafruit54AlphaDisplay
+    neighborDisplay *Adafruit54AlphaDisplay
     value1, value2, value3, value4 uint16
 }
 
@@ -150,8 +149,18 @@ func NewAdafruit54AlphaDisplay(ht *HT16K33Driver) *Adafruit54AlphaDisplay {
 func (d *Adafruit54AlphaDisplay) Name() string { return d.name }
 func (d *Adafruit54AlphaDisplay) SetName(newName string ) { d.name = newName }
 func (d *Adafruit54AlphaDisplay) HT16K33() *HT16K33Driver { return d.ht16k33 }
-func (d *Adafruit54AlphaDisplay) NextDisplay() *Adafruit54AlphaDisplay { return d.nextDisplay }
-func (d *Adafruit54AlphaDisplay) SetNextDisplay(nd *Adafruit54AlphaDisplay) { d.nextDisplay = nd }
+func (d *Adafruit54AlphaDisplay) NeighborDisplay() *Adafruit54AlphaDisplay { return d.neighborDisplay }
+func (d *Adafruit54AlphaDisplay) SetNeighborDisplay(nd *Adafruit54AlphaDisplay) { d.neighborDisplay = nd }
+
+func (d *Adafruit54AlphaDisplay) CountDeviceDigits() int {
+    var count int = 4
+
+    if d.neighborDisplay != nil {
+        count += d.neighborDisplay.CountDeviceDigits()
+    }
+
+    return count
+}
 
 // Write a 16-bit value to one of the digits.
 // Maximum value is 0x7FFF, which turns on all segments and the
@@ -168,8 +177,8 @@ func (d *Adafruit54AlphaDisplay) RawWriteDigit(digit uint8, val uint16) {
 // all segments and the decimal point on all digits.
 //
 func (d *Adafruit54AlphaDisplay) Clear() {
-    if d.nextDisplay != nil {
-        d.nextDisplay.Clear()
+    if d.neighborDisplay != nil {
+        d.neighborDisplay.Clear()
     }
 
     d.RawWriteDigit(0,0)
@@ -199,12 +208,23 @@ func (d *Adafruit54AlphaDisplay) DisplayByte(digit uint8, val uint8) {
 //
 func (d *Adafruit54AlphaDisplay) CycleDigit(digit uint8) {
     d.RawWriteDigit(digit, 0x7fff)
-    time.Sleep(1 * time.Second)
+    time.Sleep(500 * time.Millisecond)
     d.RawWriteDigit(digit, 0x00ff)
-    time.Sleep(1 * time.Second)
+    time.Sleep(500 * time.Millisecond)
     d.RawWriteDigit(digit, 0x7f00)
-    time.Sleep(1 * time.Second)
+    time.Sleep(500 * time.Millisecond)
     d.RawWriteDigit(digit, 0)
+}
+
+// A test function to drive CycleDigit for all digits.
+//
+func (d *Adafruit54AlphaDisplay) AllDigitSegmentTest() {
+    d.Clear()
+    if d.neighborDisplay != nil { d.neighborDisplay.AllDigitSegmentTest() }
+    d.CycleDigit(0)
+    d.CycleDigit(1)
+    d.CycleDigit(2)
+    d.CycleDigit(3)
 }
 
 // A test to cycle through each segment in a digit.
@@ -231,34 +251,25 @@ func (d *Adafruit54AlphaDisplay) CycleSegments() {
         }
         d.DisplayByte(0, digit)
         bit <<= 1
-        time.Sleep(1 * time.Second)
+        time.Sleep(500 * time.Millisecond)
     }
 
     d.Clear()
 }
 
-// A test function to drive CycleDigit for all digits.
-//
-func (d *Adafruit54AlphaDisplay) AllDigitSegmentTest() {
-    d.Clear()
-    d.CycleDigit(0)
-    d.CycleDigit(1)
-    d.CycleDigit(2)
-    d.CycleDigit(3)
-}
-
 // A test function to display hexademical numbers simultaniously
-// on all four digits.
+// on all digits.
 //
 func (d *Adafruit54AlphaDisplay) NumbersTest() {
     d.Clear()
+    if d.neighborDisplay != nil { d.neighborDisplay.NumbersTest() }
     var i uint8
     for i = 0 ; i < 16 ; i++ {
         d.DisplayNumber(0, i)
         d.DisplayNumber(1, i)
         d.DisplayNumber(2, i)
         d.DisplayNumber(3, i)
-        time.Sleep(1 * time.Second)
+        time.Sleep(500 * time.Millisecond)
     }
     d.Clear()
 }
@@ -308,13 +319,13 @@ func (d *Adafruit54AlphaDisplay) ScrollString(message string) {
         d.RawWriteDigit(1, value2)
         d.RawWriteDigit(2, value3)
         d.RawWriteDigit(3, value4)
-        if d.nextDisplay != nil {
-            d.nextDisplay.ScrollInFromRight(valueOut)
+        if d.neighborDisplay != nil {
+            d.neighborDisplay.ScrollInFromRight(valueOut)
         }
         time.Sleep(400 * time.Millisecond)
     }
 
-    time.Sleep(2 * time.Second)
+    time.Sleep(1 * time.Second)
     d.Clear()
 }
 
@@ -329,14 +340,28 @@ func (d *Adafruit54AlphaDisplay) ScrollInFromRight(incoming uint16) {
     d.RawWriteDigit(3, d.value4)
 }
 
+func (d *Adafruit54AlphaDisplay) WriteDirect(message string) {
+    message = message[0:d.CountDeviceDigits()]
+    if d.neighborDisplay != nil {
+        lim := len(message) - 4
+        d.neighborDisplay.WriteDirect(message[0:lim])
+    }
+
+    lim := len(message)
+    d.RawWriteDigit(0, alphaTable[string(message[lim-4])])
+    d.RawWriteDigit(1, alphaTable[string(message[lim-3])])
+    d.RawWriteDigit(2, alphaTable[string(message[lim-2])])
+    d.RawWriteDigit(3, alphaTable[string(message[lim-1])])
+}
+
 // Essentially a wrapper for i2c.Connection.Close()
 // with a call to clear the display first.
 // Call this last before exiting an application.
 //
 func (d *Adafruit54AlphaDisplay) Close() {
-    if d.nextDisplay != nil {
-        d.nextDisplay.Clear()
-        d.nextDisplay.HT16K33().Close()
+    if d.neighborDisplay != nil {
+        d.neighborDisplay.Clear()
+        d.neighborDisplay.HT16K33().Close()
     }
     d.Clear()
     d.ht16k33.Close()
