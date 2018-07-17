@@ -341,17 +341,20 @@ func (d *Adafruit54AlphaDisplay) ScrollInFromRight(incoming uint16) {
 }
 
 func (d *Adafruit54AlphaDisplay) WriteDirect(message string) {
-    message = message[0:d.CountDeviceDigits()]
+    digits := d.CountDeviceDigits()
+
+    if len(message) > digits { message = message[0:digits] }
+
     if d.neighborDisplay != nil {
         lim := len(message) - 4
-        d.neighborDisplay.WriteDirect(message[0:lim])
+        if lim > 0 { d.neighborDisplay.WriteDirect(message[0:lim]) }
     }
 
-    lim := len(message)
-    d.RawWriteDigit(0, alphaTable[string(message[lim-4])])
-    d.RawWriteDigit(1, alphaTable[string(message[lim-3])])
-    d.RawWriteDigit(2, alphaTable[string(message[lim-2])])
-    d.RawWriteDigit(3, alphaTable[string(message[lim-1])])
+    var cindex uint8 = uint8(4 - len(message))
+    for _, letter := range message {
+        d.RawWriteDigit(cindex, alphaTable[string(letter)])
+        cindex += 1
+    }
 }
 
 // Essentially a wrapper for i2c.Connection.Close()
