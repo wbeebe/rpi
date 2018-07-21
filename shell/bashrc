@@ -1,0 +1,17 @@
+#
+# To be appended to a regular .bashrc
+#
+# For Go
+#
+PATH=$PATH:/usr/local/go/bin
+
+export GOBIN=$(go env GOPATH)/bin
+export PATH=$PATH:$GOBIN
+
+#
+# Misc
+#
+alias l='ls -AlFh'
+alias ll='ls -lFh'
+alias work='cd $HOME/go/src/github.com/wbeebe'
+alias update='sudo apt update && sudo apt upgrade -y'
