@@ -157,6 +157,13 @@ func main() {
         af54.AllDigitSegmentTest()
     default:
         help()
+        //
+        // There is a corner case where, after power up, running display without any
+        // arguments to print out the instructions to the screen will leave any attached
+        // devices with randomly lit segments. This only occurs after power up.
+        // From now on getting help will also clear the display.
+        //
+        af54.Clear()
     }
 }
 
