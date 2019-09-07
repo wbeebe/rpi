@@ -31,10 +31,16 @@ echo
 memTotal=$(cat /proc/meminfo | grep MemTotal | sed 's/:/ :/' | sed 's/  */ /g')
 echo "   ${memTotal}"
 
-# Look for the processor count. Use wc (word count) to count lines (-l).
+# Look for the explicit processor/core type (i.e. 'Cortex-A53')
 #
-processorCount=$(cat /proc/cpuinfo | grep processor | wc -l)
-echo " Processors : ${processorCount}"
+data=$(lscpu | grep 'Model name:')
+wordarray=(${data//:/ })
+echo "   CPU Type : ${wordarray[2]}"
+
+# Look for the core count. Use wc (word count) to count lines (-l).
+#
+coreCount=$(cat /proc/cpuinfo | grep processor | wc -l)
+echo " Core Count : ${coreCount}"
 
 hardware=$(cat /proc/cpuinfo | grep Hardware | tr '\t' ' ')
 echo "   ${hardware}"
@@ -46,6 +52,11 @@ kernelRevision=$(uname -r)
 echo "   Kernel Release: ${kernelRevision}"
 description=$(lsb_release --all 2>/dev/null | grep Description | tr '\t' ' ')
 echo "   OS ${description}"
+echo
+
+echo " Tools"
+version=$(git --version)
+echo " Git: ${version}"
 echo
 
 echo " Languages Installed"
@@ -75,8 +86,13 @@ echo " ${version}"
 version=$(python3 -V)
 echo " ${version}"
 version=$(pip3 -V)
-echo " (pip3) ${version}"
+wordarray=(${version})
+echo " Pip ${wordarray[1]}"
 
 version=$(gcc --version)
 wordArray=(${version})
-echo " Gcc ${wordArray[1]} ${wordArray[2]} ${wordArray[3]} ${wordArray[4]}"
+echo " Gcc ${wordArray[3]}"
+echo
+df -kh .
+echo
+# gpio readall
