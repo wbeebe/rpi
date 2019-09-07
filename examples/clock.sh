@@ -25,6 +25,7 @@ trap ctrl_c INT
 
 function ctrl_c() {
     display clear > /dev/null
+    echo
     exit
 }
 #
@@ -41,6 +42,6 @@ while true; do
     DATE=$(date +%D)
     display print "$DATE" > /dev/null
     sleep 3
-    display clear > /dev/null
+    #display clear > /dev/null
 done
 
