@@ -121,28 +121,17 @@ func writeDisplayChar(device i2c.Connection, location int, char uint8) {
     digit := location % DISPLAY_MAX_CHARS
     block := location / DISPLAY_MAX_CHARS
     device.WriteByteData(GPIOA, 0xF0 | byte(digit))
-    var digitAddress uint8
-
-    switch block {
-    case 0:
-        digitAddress = 0xE0 | uint8(digit)
-    case 1:
-        digitAddress = 0xD0 | uint8(digit)
-    case 2:
-        digitAddress = 0xB0 | uint8(digit)
-    case 3:
-        digitAddress = 0x70 | uint8(digit)
-    }
 
     // With the character/block address calculated, write out the char
-    // data. Then or the address with 0xF0 to make the select bits all
+    // data. Then OR the address with 0xF0 to make the select bits all
     // high, writing the data into the individual character.
     // This works because on all devices the /WR line is in essence
     // the /CE line as well.
     //
-    device.WriteByteData(GPIOA, digitAddress)
+    digitAddress := [4]uint8{0xE0, 0xD0, 0xB0, 0x70}
+    device.WriteByteData(GPIOA, (digitAddress[block] | uint8(digit)))
     device.WriteByteData(GPIOB, char)
-    device.WriteByteData(GPIOA, (digitAddress | 0xF0))
+    device.WriteByteData(GPIOA, 0xF0)
 }
 
 // A very basic, raw write function that addresses all display
