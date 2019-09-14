@@ -120,7 +120,6 @@ const DISPLAY_MAX_CHARS int = 4
 func writeDisplayChar(device i2c.Connection, location int, char uint8) {
     digit := location % DISPLAY_MAX_CHARS
     block := location / DISPLAY_MAX_CHARS
-    device.WriteByteData(GPIOA, 0xF0 | byte(digit))
 
     // With the character/block address calculated, write out the char
     // data. Then OR the address with 0xF0 to make the select bits all
@@ -129,6 +128,7 @@ func writeDisplayChar(device i2c.Connection, location int, char uint8) {
     // the /CE line as well.
     //
     digitAddress := [4]uint8{0xE0, 0xD0, 0xB0, 0x70}
+    device.WriteByteData(GPIOA, 0xF0)
     device.WriteByteData(GPIOA, (digitAddress[block] | uint8(digit)))
     device.WriteByteData(GPIOB, char)
     device.WriteByteData(GPIOA, 0xF0)
