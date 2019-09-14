@@ -128,10 +128,10 @@ func writeDisplayChar(device i2c.Connection, location int, char uint8) {
     // the /CE line as well.
     //
     digitAddress := [4]uint8{0xE0, 0xD0, 0xB0, 0x70}
-    device.WriteByteData(GPIOA, 0xF0)
+    device.WriteByteData(GPIOA, ( 0xF0 | uint8(digit)))
     device.WriteByteData(GPIOA, (digitAddress[block] | uint8(digit)))
     device.WriteByteData(GPIOB, char)
-    device.WriteByteData(GPIOA, 0xF0)
+    device.WriteByteData(GPIOA, ( 0xF0 | uint8(digit)))
 }
 
 // A very basic, raw write function that addresses all display
