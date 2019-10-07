@@ -8,7 +8,7 @@
 #include "TutorialConfig.h"
 
 bool isNumeric(const std::string& input) {
-	return !input.empty() ? std::all_of(input.begin(), input.end(), ::isdigit) : false;
+    return !input.empty() ? std::all_of(input.begin(), input.end(), ::isdigit) : false;
 }
 
 int main (int argc, char *argv[]) {
