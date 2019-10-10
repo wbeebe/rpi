@@ -17,8 +17,7 @@ int main (int argc, char *argv[]) {
     //
     // Use regular expressions, via Boost::regex, to make sure it's a valid number.
     //
-    // boost::regex expr{"-?[0-9]+([.][0-9]+)?"};
-    boost::regex expr{"-?\\d+([.]\\d+)?"};
+    boost::regex expr{"-?\\d*([.]\\d+)?"};
     bool isNumeric = argv[1] != NULL && boost::regex_match(argv[1], expr);
 
     if (argc < 2 || !isNumeric) {
