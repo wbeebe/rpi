@@ -20,7 +20,7 @@ int main (int argc, char *argv[]) {
     boost::regex expr{"-?\\d*([.]\\d+)?"};
     bool isNumeric = argv[1] != NULL && boost::regex_match(argv[1], expr);
 
-    if (argc < 2 || !isNumeric) {
+    if (!isNumeric) {
         std::cout << base_filename << " Version " << Tutorial_VERSION_MAJOR << "." << Tutorial_VERSION_MINOR <<std::endl;
         std::cout << "Usage: " << base_filename << " number" << std::endl;
         return 1;
