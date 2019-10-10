@@ -1,6 +1,6 @@
 # CMake Tutorial
 
-This is a fairly close copy of a CMake Tutorial found at
+This is a general copy of a CMake Tutorial found at
 https://gitlab.kitware.com/cmake/cmake/tree/master/Help/guide/tutorial/Complete/
 with tweaks for Raspbian Buster and CMake version 3.13.4.
 CMake 3.13.4 is the version that ships with the current Raspbian Buster
@@ -8,22 +8,23 @@ as of September 2019.
 
 ## The Differences
 
-The biggest difference is in the CMakeLists.txt file, where the following are deleted
-from my version:
+In the CMakeLists.txt file, the following are deleted from my version:
 * set(gcc_like_cxx ...) and set(msvc_cxx ...)
 * target_compile_options
 Keeping them in caused the cmake generation step to fail.
 
+In the CMakeLists.txt file the following are added to my version:
+* Enable use of Boost for regex
+* Inclusion of external Boost libraries during the link phase
+
+The main source file Tutorial.cpp was cleaned up and some additions made to the application.
+* boost::regex was added to make sure the first argument is actually a number.
+* Code was added to strip off the directory prefix to only use the application base name.
+
 ## To Run
 * In the top directory (Tutorial) execute 'cmake .' to create the project
 * In the top directory execute 'make' to build the project
-* In the top directory execute 'make test' to optionally run a few tests
-
-## Other Differences
-
-The main source file Tutorial.cpp was cleaned up and some additions made to the application.
-* isNumeric() was added to make sure the input was actually a number.
-* Code was added to strip off the directory prefix and only use the application base name.
+* In the top directory execute 'make test' to optionally run application tests
 
 ## License Addition
 

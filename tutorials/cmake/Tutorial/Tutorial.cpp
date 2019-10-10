@@ -3,13 +3,10 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <boost/regex.hpp>
 
 #include "MathFunctions.h"
 #include "TutorialConfig.h"
-
-bool isNumeric(const std::string& input) {
-    return !input.empty() ? std::all_of(input.begin(), input.end(), ::isdigit) : false;
-}
 
 int main (int argc, char *argv[]) {
     //
@@ -17,8 +14,14 @@ int main (int argc, char *argv[]) {
     //
     std::string argv0(argv[0]);
     std::string base_filename = argv0.substr(argv0.find_last_of("/") + 1);
+    //
+    // Use regular expressions, via Boost::regex, to make sure it's a valid number.
+    //
+    // boost::regex expr{"-?[0-9]+([.][0-9]+)?"};
+    boost::regex expr{"-?\\d+([.]\\d+)?"};
+    bool isNumeric = argv[1] != NULL && boost::regex_match(argv[1], expr);
 
-    if (argc < 2 || !isNumeric(argv[1])) {
+    if (argc < 2 || !isNumeric) {
         std::cout << base_filename << " Version " << Tutorial_VERSION_MAJOR << "." << Tutorial_VERSION_MINOR <<std::endl;
         std::cout << "Usage: " << base_filename << " number" << std::endl;
         return 1;
