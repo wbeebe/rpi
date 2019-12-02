@@ -28,29 +28,34 @@ echo
 echo " ${model}"
 echo
 
-memTotal=$(cat /proc/meminfo | grep MemTotal | sed 's/:/ :/' | sed 's/  */ /g')
-echo "   ${memTotal}"
 
 # Look for the explicit processor/core type (i.e. 'Cortex-A53')
 #
 data=$(lscpu | grep 'Model name:')
 wordarray=(${data//:/ })
-echo "   CPU Type : ${wordarray[2]}"
+echo "         CPU Type : ${wordarray[2]}"
 
 # Look for the core count. Use wc (word count) to count lines (-l).
 #
 coreCount=$(cat /proc/cpuinfo | grep processor | wc -l)
-echo " Core Count : ${coreCount}"
+echo "       Core Count : ${coreCount}"
 
 hardware=$(cat /proc/cpuinfo | grep Hardware | tr '\t' ' ')
-echo "   ${hardware}"
+echo "         ${hardware}"
 
 revision=$(cat /proc/cpuinfo | grep Revision | tr '\t' ' ')
-echo "   ${revision}"
-echo
+echo "         ${revision}"
+
+memTotal=$(cat /proc/meminfo | grep MemTotal | sed 's/[^0-9]*//g' | awk '{ byte =$1 /1024/1024; print byte " GB" }')
+echo "         MemTotal : ${memTotal}"
+
+echo -n " "
+sudo vl805 | sed 's/:/ :/'
+
 kernelRevision=$(uname -r)
-echo "   Kernel Release: ${kernelRevision}"
-description=$(lsb_release --all 2>/dev/null | grep Description | tr '\t' ' ')
+echo "   Kernel Release : ${kernelRevision}"
+
+description=$(lsb_release --all 2>/dev/null | grep Description | tr '\t' ' ' | sed 's/:/ :/')
 echo "   OS ${description}"
 echo
 
@@ -83,9 +88,9 @@ fi
 # stderr...
 version=$(python -V 2>&1)
 echo " ${version}"
-version=$(python3 -V)
+version=$(python3 --version)
 echo " ${version}"
-version=$(pip3 -V)
+version=$(pip3 --version 2>/dev/null)
 wordarray=(${version})
 echo " Pip ${wordarray[1]}"
 
