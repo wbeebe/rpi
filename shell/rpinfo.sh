@@ -16,8 +16,8 @@
 #
 # ------------------------------------------------------------------------------
 # 
-# Simple Bash script to display information about any Raspberry Pi board in
-# inventory.
+# Simple Bash script to display information about any Raspberry Pi or
+# Jetson Nano board in my inventory.
 #
 # Note that for the version string we have to use tr to substitute the ending
 # null byte for a newline, or else a warning about null is emitted by the
@@ -41,22 +41,24 @@ coreCount=$(cat /proc/cpuinfo | grep processor | wc -l)
 echo "       Core Count : ${coreCount}"
 
 hardware=$(cat /proc/cpuinfo | grep Hardware | tr '\t' ' ')
-echo "         ${hardware}"
+[[ ! -z "$hardware" ]] && echo "         ${hardware}"
 
 revision=$(cat /proc/cpuinfo | grep Revision | tr '\t' ' ')
-echo "         ${revision}"
+[[ ! -z "$revision" ]] && echo "         ${revision}"
 
 memTotal=$(cat /proc/meminfo | grep MemTotal | sed 's/[^0-9]*//g' | awk '{ byte =$1 /1024/1024; print byte " GB" }')
 echo "         MemTotal : ${memTotal}"
 
-echo -n " "
-sudo vl805 | sed 's/:/ :/'
+if hash vl805 2>/dev/null; then
+    echo -n " "
+    sudo vl805 | sed 's/:/ :/'
+fi
 
 kernelRevision=$(uname -r)
 echo "   Kernel Release : ${kernelRevision}"
 
-description=$(lsb_release --all 2>/dev/null | grep Description | tr '\t' ' ' | sed 's/:/ :/')
-echo "   OS ${description}"
+description=$(lsb_release --all 2>/dev/null | grep Description | cut -d ":" -f 2 | sed 's/^[ \t]*//')
+echo "   OS Description : ${description}"
 echo
 
 echo " Tools"
@@ -65,19 +67,15 @@ echo " Git: ${version}"
 echo
 
 echo " Languages Installed"
-golang='/usr/local/go/bin/go'
-if [ -e ${golang} ]
-then
-    version=$(${golang} version)
+if hash go 2>/dev/null; then
+    version=$(go version)
     echo " Go: ${version}"
 else
     echo " No Go found."
 fi
 
-rustlang="$HOME/.cargo/bin/rustc"
-if [ -e ${rustlang} ]
-then
-    version=$(${rustlang} --version)
+if hash rustc 2>/dev/null; then
+    version=$(rustc --version)
     echo " Rust: ${version}"
 else
     echo " No Rust found."
@@ -86,13 +84,19 @@ fi
 # Redirect stderr to stdout for Python 2 version, because
 # that's they way they did it, printing version string to
 # stderr...
+#
 version=$(python -V 2>&1)
 echo " ${version}"
 version=$(python3 --version)
 echo " ${version}"
-version=$(pip3 --version 2>/dev/null)
-wordarray=(${version})
-echo " Pip ${wordarray[1]}"
+
+if hash pip 2>/dev/null; then
+    version=$(pip3 --version 2>/dev/null)
+    wordarray=(${version})
+    echo " Pip ${wordarray[1]}"
+else
+    echo " Pip not installed."
+fi
 
 version=$(gcc --version)
 wordArray=(${version})
