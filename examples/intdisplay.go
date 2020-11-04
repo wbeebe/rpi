@@ -22,72 +22,80 @@ limitations under the License.
 package main
 
 import (
-    "fmt"
-    "log"
-    "os"
-    "os/signal"
-    "syscall"
-    "time"
+	"fmt"
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
-    "gobot.io/x/gobot/drivers/i2c"
-    "gobot.io/x/gobot/platforms/raspi"
+	"gobot.io/x/gobot/drivers/i2c"
+	"gobot.io/x/gobot/platforms/raspi"
 )
 
-const MCP23017_DEFAULT_ADDRESS int = 0x20
-var address int = MCP23017_DEFAULT_ADDRESS
+// Mcp23017DefaultAddress is the I2C default address.
+//
+const Mcp23017DefaultAddress int = 0x20
+
+var address int = Mcp23017DefaultAddress
 
 // Go's iota is used to define MCP23017 register addresses.
 // The underscore is used to skip undefined registers addresses.
 // These are register addresses in bank 0.
 //
 const (
-    IODIRA = iota
-    IODIRB
-    IPOLA
-    IPOLB
-    GPINTENA
-    GPINTENB
-    _
-    _
-    _
-    _
-    _
-    _
-    GPPUA
-    GPPUB
-    _
-    _
-    _
-    _
-    GPIOA
-    GPIOB
-    OLATA
-    OLATB
+	IODIRA = iota
+	IODIRB
+	IPOLA
+	IPOLB
+	GPINTENA
+	GPINTENB
+	_
+	_
+	_
+	_
+	_
+	_
+	GPPUA
+	GPPUB
+	_
+	_
+	_
+	_
+	GPIOA
+	GPIOB
+	OLATA
+	OLATB
 )
 
 func initialize() (device i2c.Connection, err error) {
-    adapter := raspi.NewAdaptor()
-    adapter.Connect()
-    bus := adapter.GetDefaultBus()
+	adapter := raspi.NewAdaptor()
+	adapter.Connect()
+	bus := adapter.GetDefaultBus()
 
-    // Check to see if the device actually is on the I2C buss.
-    // If it is then use it, else return an error.
-    //
-    if device, err := adapter.GetConnection(address, bus) ; err == nil {
-        if _, err := device.ReadByte() ; err == nil {
-            fmt.Printf(" Using device 0x%x / %d on bus %d\n", address, address, bus)
-        } else {
-            return device, fmt.Errorf(" Could not find device 0x%x / %d", address, address)
-        }
-    }
+	// Check to see if the device actually is on the I2C buss.
+	// If it is then use it, else return an error.
+	//
+	if device, err := adapter.GetConnection(address, bus); err == nil {
+		if _, err := device.ReadByte(); err == nil {
+			fmt.Printf(" Using device 0x%x / %d on bus %d\n", address, address, bus)
+		} else {
+			return device, fmt.Errorf(" Could not find device 0x%x / %d", address, address)
+		}
+	}
 
-    device, _ = adapter.GetConnection(address, bus)
-    // Set the GPIO ports (A and B) to all outputs
-    //
-    device.WriteByteData(IODIRA, 0x00)
-    device.WriteByteData(IODIRB, 0x00)
-    return device, nil
+	device, _ = adapter.GetConnection(address, bus)
+	// Set the GPIO ports (A and B) to all outputs
+	//
+	device.WriteByteData(IODIRA, 0x00)
+	device.WriteByteData(IODIRB, 0x00)
+	return device, nil
 }
+
+// DisplayMaxChars is the maximum number of alphanumeric characters per
+// physical display.
+//
+const DisplayMaxChars int = 4
 
 // writeDisplayChar allows for up to four blocks of intelligent displays,
 // with four characters/block, for a total of 16 characters.
@@ -115,133 +123,130 @@ func initialize() (device i2c.Connection, err error) {
 //
 // Two GPIO A output lines are current unused in this scheme, 2 and 3.
 //
-const DISPLAY_MAX_CHARS int = 4
-
 func writeDisplayChar(device i2c.Connection, location int, char uint8) {
-    digit := location % DISPLAY_MAX_CHARS
-    block := location / DISPLAY_MAX_CHARS
+	digit := location % DisplayMaxChars
+	block := location / DisplayMaxChars
 
-    // With the character/block address calculated, write out the char
-    // data. Then OR the address with 0xF0 to make the select bits all
-    // high, writing the data into the individual character.
-    // This works because on all devices the /WR line is in essence
-    // the /CE line as well.
-    //
-    digitAddress := [4]uint8{0xE0, 0xD0, 0xB0, 0x70}
-    device.WriteByteData(GPIOA, ( 0xF0 | uint8(digit)))
-    device.WriteByteData(GPIOA, (digitAddress[block] | uint8(digit)))
-    device.WriteByteData(GPIOB, char)
-    device.WriteByteData(GPIOA, ( 0xF0 | uint8(digit)))
+	// With the character/block address calculated, write out the char
+	// data. Then OR the address with 0xF0 to make the select bits all
+	// high, writing the data into the individual character.
+	// This works because on all devices the /WR line is in essence
+	// the /CE line as well.
+	//
+	digitAddress := [4]uint8{0xE0, 0xD0, 0xB0, 0x70}
+	device.WriteByteData(GPIOA, (0xF0 | uint8(digit)))
+	device.WriteByteData(GPIOA, (digitAddress[block] | uint8(digit)))
+	device.WriteByteData(GPIOB, char)
+	device.WriteByteData(GPIOA, (0xF0 | uint8(digit)))
 }
 
-// A very basic, raw write function that addresses all display
-// blocks at once, writing a space to each digit, turning off
+// clearDisplay is a very basic raw write function that addresses
+// all display blocks at once, writing a space to each digit, turning off
 // any lit segments.
 //
 func clearDisplay(device i2c.Connection) {
-    device.WriteByteData(GPIOA, 0x03)
-    device.WriteByteData(GPIOB, ' ')
-    device.WriteByteData(GPIOA, 0x02)
-    device.WriteByteData(GPIOB, ' ')
-    device.WriteByteData(GPIOA, 0x01)
-    device.WriteByteData(GPIOB, ' ')
-    device.WriteByteData(GPIOA, 0x00)
-    device.WriteByteData(GPIOB, ' ')
+	device.WriteByteData(GPIOA, 0x03)
+	device.WriteByteData(GPIOB, ' ')
+	device.WriteByteData(GPIOA, 0x02)
+	device.WriteByteData(GPIOB, ' ')
+	device.WriteByteData(GPIOA, 0x01)
+	device.WriteByteData(GPIOB, ' ')
+	device.WriteByteData(GPIOA, 0x00)
+	device.WriteByteData(GPIOB, ' ')
 }
 
-// A very basic text scrolling routine that assumes
+// scrollText is a very basic text scrolling routine that assumes
 // four blocks/16 characters are to be written to.
 // If the text string length is less than the maximum
 // characters then the string is just displayed across
 // all the devices.
 //
 func scrollText(device i2c.Connection, text string) {
-    clearDisplay(device)
-    MAX_CHARS := DISPLAY_MAX_CHARS * 4
+	clearDisplay(device)
+	MaxChars := DisplayMaxChars * 4
 
-    if len(text) < MAX_CHARS {
-        offset := 0
-        for j := 15 ; j >= MAX_CHARS - len(text) ; j-- {
-            writeDisplayChar(device, j, text[offset])
-            offset++
-        }
+	if len(text) < MaxChars {
+		offset := 0
+		for j := 15; j >= MaxChars-len(text); j-- {
+			writeDisplayChar(device, j, text[offset])
+			offset++
+		}
 
-        return
-    }
+		return
+	}
 
-    for i := 0 ; i <= len(text) - MAX_CHARS; i++ {
-        offset := 0
-        for j := 15 ; j >= 0 ; j-- {
-            writeDisplayChar(device, j, text[i + offset])
-            offset++
-        }
+	for i := 0; i <= len(text)-MaxChars; i++ {
+		offset := 0
+		for j := 15; j >= 0; j-- {
+			writeDisplayChar(device, j, text[i+offset])
+			offset++
+		}
 
-        time.Sleep( 250 * time.Millisecond)
-    }
+		time.Sleep(250 * time.Millisecond)
+	}
 }
 
-// A very basic clock. Writes the time to the
-// two lowest blocks (characters 0-7) and the date to the
-// two highest blocks (character 8-15)
+// basicClock srites the time to the two lowest blocks
+// (characters 0-7) and the date to the two highest blocks
+// (character 8-15)
 //
 func basicClock(device i2c.Connection) {
-    for {
-        now := time.Now()
-        text := now.String()
-        ti := 11 // time index into string
-        di := 2  // date index into string
+	for {
+		now := time.Now()
+		text := now.String()
+		ti := 11 // time index into string
+		di := 2  // date index into string
 
-        for i := 7 ; i >= 0 ; i-- {
-            writeDisplayChar(device, i, text[ti])
-            writeDisplayChar(device, i+8, text[di])
-            ti++
-            di++
-        }
+		for i := 7; i >= 0; i-- {
+			writeDisplayChar(device, i, text[ti])
+			writeDisplayChar(device, i+8, text[di])
+			ti++
+			di++
+		}
 
-        time.Sleep( 1 * time.Second)
-    }
+		time.Sleep(1 * time.Second)
+	}
 }
 
 func main() {
-    // Hook the various system abort calls for us to use or ignore as we
-    // see fit. In particular hook SIGINT, or CTRL+C for below.
-    //
-    signal_chan := make(chan os.Signal, 1)
-    signal.Notify(signal_chan,
-        syscall.SIGHUP,
-        syscall.SIGINT,
-        syscall.SIGTERM,
-        syscall.SIGQUIT)
+	// Hook the various system abort calls for us to use or ignore as we
+	// see fit. In particular hook SIGINT, or CTRL+C for below.
+	//
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signal_chan,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT)
 
-    device, err := initialize()
-    if err != nil {
-        log.Fatal(err)
-    }
+	device, err := initialize()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    // We want to capture CTRL+C to first clear the display and then exit.
-    // We don't want to leave the display lit on an abort.
-    //
-    go func() {
-        for {
-            signal := <-signal_chan
-            switch signal {
-            case syscall.SIGINT:
-                // CTRL+C
-                fmt.Println()
-                clearDisplay(device)
-                device.Close()
-                os.Exit(0)
-            default:
-            }
-        }
-    }()
+	// We want to capture CTRL+C to first clear the display and then exit.
+	// We don't want to leave the display lit on an abort.
+	//
+	go func() {
+		for {
+			signal := <-signal_chan
+			switch signal {
+			case syscall.SIGINT:
+				// CTRL+C
+				fmt.Println()
+				clearDisplay(device)
+				device.Close()
+				os.Exit(0)
+			default:
+			}
+		}
+	}()
 
-    scrollText(device, "CHARACTER TEST")
-    time.Sleep( 3 * time.Second)
+	scrollText(device, "CHARACTER TEST")
+	time.Sleep(3 * time.Second)
 
-    testchars := "                !\"#$%&'<>*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_                "
-    scrollText(device, testchars)
+	testchars := "                !\"#$%&'<>*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_                "
+	scrollText(device, testchars)
 
-    basicClock(device)
+	basicClock(device)
 }
-
