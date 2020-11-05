@@ -1,40 +1,29 @@
 # rpi
 
-A collection of tools to manipulate the Raspberry Pi GPIO and I2C bus.
-Some tools are written in Go, and some in C++
+A collection of tools to manipulate the Raspberry Pi GPIO and I2C bus. Some tools are written in Go, and some in C++
 
-## Go Tools
+## Go Apps
 
-The Go tools are built with Go 1.10.3 and use the Gobot framework (https://gobot.io).
-The Go tools were downloaded and installed from https://golang.org/
-Do not install Go from any Linux repo unless it matches the release
-version on the website.
+The Go apps were started with Go 1.10.3 and use the Gobot framework (https://gobot.io). The most recent version of Go used to build the apps is 1.15.3.
 
-## C++ Tools
+The Go software is downloaded and installed from https://golang.org/ . Do not install Go from any Linux repo unless it matches the release version on the website.
 
-The C++ tools are built with GCC 6.3 and use Gordon Henderson's excellent
-wiringPi framework (http://wiringpi.com/). The latest Raspbian repo has
-the latest wiringPi release, 2.46. GCC 6.3 is provided in the latest Raspbian
-repo as well.
+## C++ Apps (Deprecated)
+
+The C++ apps were initially built with GCC 6.3 and Gordon Henderson's excellent wiringPi framework (http://wiringpi.com/). However, as of August 2018, Gordon Henderson has deprecated his framework and is no longer developing nor supporting it. Therefore, these apps are deprecated as well.
 
 ## Hardware
 
-Everything has been built and tested on a Raspberry Pi 3 Model B+,
-Raspberry Pi 3 Model B, and a Raspberry Pi Zero W.
+Everything has been built and tested on a Raspberry Pi 3 Model B+, Raspberry Pi 3 Model B, a Raspberry Pi Zero W, and Raspberry Pi 4B (1GiB, 2GiB, 4GiB and 8GiB)
 
 ## Operating System
 
-The OS on all devices is the latest version of Raspbian available
-from https://www.raspberrypi.org/downloads/raspbian/
-Full blown Raspbian (with graphical desktop) is installed on the
-Raspberry Pi 3s. Raspbian Lite is on the Zero.
+The OS on all devices is the latest 64-bit version of Raspbian available from https://downloads.raspberrypi.org/raspios_arm64/images/ . Full blown Raspbian (with graphical desktop) is installed on the
+Raspberry Pi 4Bs. Raspbian Lite is on the Zero.
 
 ## Data Sheets
 
-It's hard finding data sheets for electronic components these days.
-To that end I've collected as many as possible for every component I
-use in my projects and put them in the datasheets folder. I hope you
-find them useful in your own work.
+It's hard finding data sheets for electronic components these days. To that end I've collected as many as possible for every component I use in my projects and put them in the datasheets folder. I hope you find them useful in your own work.
 
 The folder contains the following data sheets in PDF format:
 
