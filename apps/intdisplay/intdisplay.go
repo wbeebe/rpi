@@ -213,7 +213,7 @@ func main() {
 	// see fit. In particular hook SIGINT, or CTRL+C for below.
 	//
 	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signal_chan,
+	signal.Notify(signalChan,
 		syscall.SIGHUP,
 		syscall.SIGINT,
 		syscall.SIGTERM,
@@ -229,7 +229,7 @@ func main() {
 	//
 	go func() {
 		for {
-			signal := <-signal_chan
+			signal := <-signalChan
 			switch signal {
 			case syscall.SIGINT:
 				// CTRL+C
