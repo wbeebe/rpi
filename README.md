@@ -4,7 +4,7 @@ A collection of tools to manipulate the Raspberry Pi GPIO and I2C bus. Some tool
 
 ## Go Apps
 
-The Go apps were started with Go 1.10.3 and use the Gobot framework (https://gobot.io). The most recent version of Go used to build the apps is 1.15.3.
+The Go apps were started with Go 1.10.3 and use the Gobot framework (https://gobot.io). The most recent version of Go used to build the apps is 1.15.4.
 
 The Go software is downloaded and installed from https://golang.org/ . Do not install Go from any Linux repo unless it matches the release version on the website.
 
